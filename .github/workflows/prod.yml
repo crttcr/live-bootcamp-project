@@ -82,7 +82,7 @@ jobs:
       run: sudo apt install sshpass
 
     - name: echo SSHPASS
-      run: echo "SSHPASS envar: [$SSHPASS]"
+      run: echo 'SSHPASS envar: [$SSHPASS]'
 
     - name: Which scp
       run: sudo which scp
