@@ -91,7 +91,7 @@ jobs:
       run: sudo ls -l compose.yml
 
     - name: Copy compose.yml to droplet
-      run: sudo sshpass -v -p ${{ secrets.DROPLET_PASSWORD }} scp -o StrictHostKeyChecking=no compose.yml root@${{ vars.DROPLET_IP }}:~
+      run: sudo sshpass -v -p "${{ secrets.DROPLET_PASSWORD }}" scp -o StrictHostKeyChecking=no compose.yml root@${{ vars.DROPLET_IP }}:~
 
     - name: Deploy
       uses: appleboy/ssh-action@master
