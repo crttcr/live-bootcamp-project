@@ -79,7 +79,7 @@ jobs:
         password: ${{ secrets.DOCKER_PASSWORD }}
 
     - name: Install sshpass
-      run: sudo apt-get install sshpass
+      run: sudo apt-get update && sudo apt-get install -y sshpass
 
     - name: Copy compose.yml to droplet
       run: sshpass -v -p ${{ secrets.DROPLET_PASSWORD }} scp -o StrictHostKeyChecking=no compose.yml root@${{ vars.DROPLET_IP }}:~
