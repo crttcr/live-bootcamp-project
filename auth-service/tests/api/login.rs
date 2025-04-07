@@ -2,7 +2,7 @@
 use crate::helpers::TestApp;
 
 #[tokio::test]
-async fn login_works()
+pub async fn login_works()
 {
     let app      = TestApp::new().await;
     let response = app.test_login().await;
