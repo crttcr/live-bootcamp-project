@@ -11,6 +11,8 @@ use axum_extra::extract::CookieJar;
 use serde::Serialize;
 use tower_http::services::ServeDir;
 
+// TODO: What is the purpose of this file?
+
 #[tokio::main]
 async fn main() {
     let app = Router::new()
