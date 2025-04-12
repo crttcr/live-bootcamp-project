@@ -4,7 +4,7 @@ use uuid::Uuid;
 
 pub struct TestApp
 {
-	pub address: String,
+	pub address:     String,
 	pub http_client: reqwest::Client,
 }
 
@@ -19,11 +19,8 @@ impl TestApp {
 		// Run the auth service in a separate async task
 		// to avoid blocking the main test thread.
 		#[allow(clippy::let_underscore_future)]
-		let _ = tokio::spawn(app.run());
-
-		// Create a Reqwest http client instance
-		let http_client = reqwest::Client::new();
-
+		let _           = tokio::spawn(app.run());
+		let http_client = reqwest::Client::new(); // Create a Reqwest http client instance
 		TestApp{address, http_client}
 	}
 

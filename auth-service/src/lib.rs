@@ -30,9 +30,9 @@ impl Application {
             .route("/verify-token",   post(verify_token));
 
         let listener = tokio::net::TcpListener::bind(address).await?;
-        let address = listener.local_addr()?.to_string();
-        let server = axum::serve(listener, router);
-        let rv = Application {server, address};
+        let address  = listener.local_addr()?.to_string();
+        let server   = axum::serve(listener, router);
+        let rv       = Application {server, address};
         Ok(rv)
     }
 

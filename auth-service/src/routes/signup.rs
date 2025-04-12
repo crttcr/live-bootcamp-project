@@ -19,7 +19,7 @@ pub async fn signup(Json(request): Json<SignupRequest>) -> impl IntoResponse {
     // For this example, we will just return a 200 OK response.
 
     // Simulate some processing
-    tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+    tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
 
     // Return a 200 OK response
    StatusCode::OK.into_response()
