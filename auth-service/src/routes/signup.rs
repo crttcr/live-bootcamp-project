@@ -4,6 +4,7 @@ use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 
+use crate::domain::error::AuthAPIError;
 use crate::domain::user::User;
 use crate::app_state::AppState;
 
@@ -30,27 +31,32 @@ pub async fn signup(
     Json(request):  Json<SignupRequest>,
     ) -> impl IntoResponse {
     println!("Received signup request: {:?}", request);
+    // Email validation
+    let email = &request.email;
+    if email.is_empty()     { return Err(AuthAPIError::InvalidCredentials) }
+    if email.contains(" ")  { return Err(AuthAPIError::InvalidCredentials) }
+    if !email.contains("@") { return Err(AuthAPIError::InvalidCredentials) }
+
+    // Password validation
+    let password  = &request.password;
+    if password.len() < 8   { return Err(AuthAPIError::InvalidCredentials) }
+
     let mut store = state.user_store.write().await;
+    if store.get_user(email.as_str()).is_ok() { return Err(AuthAPIError::UserAlreadyExists) }
+
     let user      = request.to_user();
     let result    = store.add_user(user);
-    let result    = result.unwrap();
-    println!("User added: {:?}", result);
-    /*
     match result {
-        Ok(_) => println!("User added successfully"),
+        Ok(_) => {
+            println!("User added successfully");
+            let message  = "User created successfully!".to_owned();
+            let response = Json(SignupResponse{message});
+            Ok((StatusCode::CREATED, response))
+        }
         Err(e) => {
             println!("Failed to add user: {:?}", e);
-            return (StatusCode::BAD_REQUEST, Json(SignupResponse{message: "Failed to add user".to_owned()}));
+            Err(AuthAPIError::UnexpectedError)
         }
     }
-    */
 
-    // Here you would typically handle the signup logic, such as saving the user to a database.
-    // For this example, we will just return a 200 OK response.
-    // Simulate some processing
-    tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
-
-    let message  = "User created successfully!".to_owned();
-    let response = Json(SignupResponse{message});
-    (StatusCode::CREATED, response)
 }
