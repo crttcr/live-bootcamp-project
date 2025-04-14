@@ -1,9 +1,9 @@
+use crate::domain::data_stores::UserStore;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-use crate::services::hashmap_user_store::HashmapUserStore;
-
-type UserStoreType = Arc<RwLock<HashmapUserStore>>;
+type UserStoreTO   = dyn UserStore + Send + Sync;
+type UserStoreType = Arc<RwLock<UserStoreTO>>;
 
 #[derive(Clone)]
 pub struct AppState {

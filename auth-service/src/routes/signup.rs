@@ -42,10 +42,10 @@ pub async fn signup(
     if password.len() < 8   { return Err(AuthAPIError::InvalidCredentials) }
 
     let mut store = state.user_store.write().await;
-    if store.get_user(email.as_str()).is_ok() { return Err(AuthAPIError::UserAlreadyExists) }
+    if store.get_user(email.as_str()).await.is_ok() { return Err(AuthAPIError::UserAlreadyExists) }
 
     let user      = request.to_user();
-    let result    = store.add_user(user);
+    let result    = store.add_user(user).await;
     match result {
         Ok(_) => {
             println!("User added successfully");
@@ -58,5 +58,4 @@ pub async fn signup(
             Err(AuthAPIError::UnexpectedError)
         }
     }
-
 }
