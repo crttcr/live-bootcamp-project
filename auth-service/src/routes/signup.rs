@@ -1,8 +1,14 @@
-
+use serde::{Deserialize, Serialize};
 use axum::Json;
+use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
-use serde::Deserialize;
+
+use crate::domain::email::Email;
+use crate::domain::password::Password;
+use crate::domain::error::AuthAPIError;
+use crate::domain::user::User;
+use crate::app_state::AppState;
 
 #[derive(Deserialize, Debug)]
 pub struct SignupRequest {
@@ -12,11 +18,50 @@ pub struct SignupRequest {
     pub requires_2fa:   bool,
 }
 
-pub async fn signup(Json(request): Json<SignupRequest>) -> impl IntoResponse {
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+pub struct SignupResponse {
+    pub message: String,
+}
+
+pub async fn signup(
+    State(state):   State<AppState>,
+    Json(request):  Json<SignupRequest>,
+    ) -> impl IntoResponse {
     println!("Received signup request: {:?}", request);
-    // Here you would typically handle the signup logic, such as saving the user to a database.
-    // For this example, we will just return a 200 OK response.
-    // Simulate some processing
-    tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
-   StatusCode::OK.into_response()
+    let email = match Email::parse(&request.email) {
+        Ok(e) => {e},
+        Err(e) => {
+            println!("Invalid email: {:?}", e);
+            return Err(AuthAPIError::InvalidCredentials);
+        }
+    };
+
+    let password = match Password::parse(&request.password) {
+        Ok(e) => {e},
+        Err(e) => {
+            println!("Invalid password: {:?}", e);
+            return Err(AuthAPIError::InvalidCredentials);
+        }
+    };
+
+    let mut store = state.user_store.write().await;
+    if store.get_user(&email).await.is_ok() { 
+        println!("User with email {} already exists.", &email);
+        return Err(AuthAPIError::UserAlreadyExists) 
+    }
+
+    let user      = User::new(email, password, request.requires_2fa);
+    let result    = store.add_user(user).await;
+    match result {
+        Ok(_) => {
+            println!("User added successfully");
+            let message  = "User created successfully!".to_owned();
+            let response = Json(SignupResponse{message});
+            Ok((StatusCode::CREATED, response))
+        }
+        Err(e) => {
+            println!("Failed to add user: {:?}", e);
+            Err(AuthAPIError::UnexpectedError)
+        }
+    }
 }
