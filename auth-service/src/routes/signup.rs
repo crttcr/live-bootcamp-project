@@ -4,6 +4,8 @@ use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 
+use crate::domain::email::Email;
+use crate::domain::password::Password;
 use crate::domain::error::AuthAPIError;
 use crate::domain::user::User;
 use crate::app_state::AppState;
@@ -16,35 +18,39 @@ pub struct SignupRequest {
     pub requires_2fa:   bool,
 }
 
-impl SignupRequest {
-    pub fn to_user(self) -> User {
-        User::new(self.email, self.password, self.requires_2fa)
-    }
-}
-
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct SignupResponse {
     pub message: String,
 }
+
 pub async fn signup(
     State(state):   State<AppState>,
     Json(request):  Json<SignupRequest>,
     ) -> impl IntoResponse {
     println!("Received signup request: {:?}", request);
-    // Email validation
-    let email = &request.email;
-    if email.is_empty()     { return Err(AuthAPIError::InvalidCredentials) }
-    if email.contains(" ")  { return Err(AuthAPIError::InvalidCredentials) }
-    if !email.contains("@") { return Err(AuthAPIError::InvalidCredentials) }
+    let email = match Email::parse(&request.email) {
+        Ok(e) => {e},
+        Err(e) => {
+            println!("Invalid email: {:?}", e);
+            return Err(AuthAPIError::InvalidCredentials);
+        }
+    };
 
-    // Password validation
-    let password  = &request.password;
-    if password.len() < 8   { return Err(AuthAPIError::InvalidCredentials) }
+    let password = match Password::parse(&request.password) {
+        Ok(e) => {e},
+        Err(e) => {
+            println!("Invalid password: {:?}", e);
+            return Err(AuthAPIError::InvalidCredentials);
+        }
+    };
 
     let mut store = state.user_store.write().await;
-    if store.get_user(email.as_str()).await.is_ok() { return Err(AuthAPIError::UserAlreadyExists) }
+    if store.get_user(&email).await.is_ok() { 
+        println!("User with email {} already exists.", &email);
+        return Err(AuthAPIError::UserAlreadyExists) 
+    }
 
-    let user      = request.to_user();
+    let user      = User::new(email, password, request.requires_2fa);
     let result    = store.add_user(user).await;
     match result {
         Ok(_) => {
