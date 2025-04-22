@@ -1,7 +1,6 @@
 
 use crate::domain::email::{Email, EmailError};
 
-
 #[test]
 pub fn email_missing_at_symbol_is_invalid()
 {
@@ -12,7 +11,6 @@ pub fn email_missing_at_symbol_is_invalid()
          Err(e) => { assert_eq!(e, EmailError::MissingAtSymbol); }
       }
 }
-
 
 #[test]
 pub fn parse_empty_string_fails_as_expected()
@@ -36,6 +34,16 @@ pub fn parse_string_with_whitespace_fails()
       }
 }
 
+#[test]
+pub fn email_missing_subject_is_rejected()
+{
+    let input   = "@doe@com";
+    let output  = Email::parse(input);
+    match output {
+        Ok(_) =>  { panic!("Email should be invalid"); }
+        Err(e) => { assert_eq!(e, EmailError::BadFormat); }
+    }
+}
 #[test]
 pub fn parse_string_with_two_at_symbols_fails()
 {
@@ -103,4 +111,3 @@ pub fn parse_unicode_local_part_rejected_by_validator()
       Err(e) => { assert_eq!(e, EmailError::BadFormat); }
    }
 }
-

@@ -1,14 +1,14 @@
-use serde::{Deserialize, Serialize};
-use axum::Json;
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
+use axum::Json;
+use serde::{Deserialize, Serialize};
 
-use crate::domain::email::Email;
-use crate::domain::password::Password;
-use crate::domain::error::AuthAPIError;
-use crate::domain::user::User;
 use crate::app_state::AppState;
+use crate::domain::email::Email;
+use crate::domain::error::AuthAPIError;
+use crate::domain::password::Password;
+use crate::domain::user::User;
 
 #[derive(Deserialize, Debug)]
 pub struct SignupRequest {
@@ -18,7 +18,7 @@ pub struct SignupRequest {
     pub requires_2fa:   bool,
 }
 
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Deserialize, PartialEq, Serialize)]
 pub struct SignupResponse {
     pub message: String,
 }
@@ -28,22 +28,9 @@ pub async fn signup(
     Json(request):  Json<SignupRequest>,
     ) -> impl IntoResponse {
     println!("Received signup request: {:?}", request);
-    let email = match Email::parse(&request.email) {
-        Ok(e) => {e},
-        Err(e) => {
-            println!("Invalid email: {:?}", e);
-            return Err(AuthAPIError::InvalidCredentials);
-        }
-    };
-
-    let password = match Password::parse(&request.password) {
-        Ok(e) => {e},
-        Err(e) => {
-            println!("Invalid password: {:?}", e);
-            return Err(AuthAPIError::InvalidCredentials);
-        }
-    };
-
+    let email    = Email::parse(   &request.email   ).map_err(|_| AuthAPIError::InvalidCredentials)?;
+    let password = Password::parse(&request.password).map_err(|_| AuthAPIError::InvalidCredentials)?;
+    
     let mut store = state.user_store.write().await;
     if store.get_user(&email).await.is_ok() { 
         println!("User with email {} already exists.", &email);

@@ -1,16 +1,15 @@
 
-use crate::domain::user::User;
-use super::password::Password;
 use super::email::Email;
-
+use super::password::Password;
+use super::user::User;
 
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum UserStoreError 
 {
-    UserAlreadyExists,
-    UserNotFound,
     InvalidCredentials,
     UnexpectedError,
+    UserAlreadyExists,
+    UserNotFound,
 }
 
 #[async_trait::async_trait]

@@ -66,7 +66,7 @@ pub async fn should_succeed_with_the_expected_result() {
 }
 
 #[tokio::test]
-pub async fn signup_should_return_442_upon_malformed_imput()
+pub async fn should_return_422_upon_malformed_input()
 {
     let app          = TestApp::new().await;
     let random_email = get_random_email();

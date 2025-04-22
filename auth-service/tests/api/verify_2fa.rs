@@ -5,7 +5,7 @@ use crate::helpers::TestApp;
 pub async fn verify_2fa_works()
 {
     let app      = TestApp::new().await;
-    let response = app.test_verify_2fa().await;
+    let response = app.post_verify_2fa().await;
 
     assert_eq!(response.status().as_u16(), 200);
 //   assert_eq!(response.headers().get("content-type").unwrap(), "text/html");

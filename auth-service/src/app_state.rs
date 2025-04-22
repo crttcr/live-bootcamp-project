@@ -1,9 +1,10 @@
-use crate::domain::data_stores::UserStore;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-type UserStoreTO   = dyn UserStore + Send + Sync;
-type UserStoreType = Arc<RwLock<UserStoreTO>>;
+use crate::domain::data_stores::UserStore;
+
+type UserStoreTraitObject = dyn UserStore + Send + Sync;
+type UserStoreType        = Arc<RwLock<UserStoreTraitObject>>;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -12,6 +13,6 @@ pub struct AppState {
 
 impl AppState {
     pub fn new(user_store: UserStoreType) -> Self {
-        AppState { user_store }
+        AppState{user_store}
     }
 }

@@ -1,15 +1,15 @@
-use app_state::AppState;
-use axum::serve::Serve;
-use axum::Router;
-use axum::response::{IntoResponse, Response};
-use tower_http::services::ServeDir;
-use crate::routes::*;
-use axum::routing::post;
-use axum::http::StatusCode;
 use crate::domain::error::AuthAPIError;
+use crate::routes::*;
+use app_state::AppState;
+use axum::http::StatusCode;
+use axum::response::{IntoResponse, Response};
+use axum::routing::post;
+use axum::serve::Serve;
 use axum::Json;
-use serde::Serialize;
+use axum::Router;
 use serde::Deserialize;
+use serde::Serialize;
+use tower_http::services::ServeDir;
 
 pub mod app_state;
 pub mod domain;
