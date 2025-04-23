@@ -33,8 +33,8 @@ impl UserStore for HashmapUserStore {
     async fn validate_user(&self, email: &Email, password: &Password) -> Result<(), UserStoreError> {
         match self.users.get(email) {
             Some(user) if user.password == *password => Ok(()),
-            Some(_)                                 => Err(UserStoreError::InvalidCredentials),
-            None                                    => Err(UserStoreError::UserNotFound),
+            Some(_)                                  => Err(UserStoreError::InvalidCredentials),
+            None                                     => Err(UserStoreError::UserNotFound),
         }
     }
 }

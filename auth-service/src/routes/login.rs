@@ -8,10 +8,9 @@ use axum::Json;
 use crate::domain::email::Email;
 use crate::domain::password::Password;
 use crate::domain::error::AuthAPIError;
-use crate::domain::user::User;
 use crate::app_state::AppState;
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Serialize)]
 pub struct LoginRequest {
     pub email:          String,
     pub password:       String,
@@ -27,38 +26,21 @@ pub async fn login(
     Json(request):  Json<LoginRequest>,
 ) -> impl IntoResponse {
    println!("Received login request: {:?}", request);
-   let email = match Email::parse(&request.email) {
-      Ok(e)  => {e},
-      Err(e) => {
-         println!("Invalid email: {:?}", e);
-         return Err(AuthAPIError::InvalidCredentials);
-      }
-   };
 
-   let password = match Password::parse(&request.password) {
-      Ok(e)  => {e},
-      Err(e) => {
-         println!("Invalid password: {:?}", e);
-         return Err(AuthAPIError::InvalidCredentials);
-      }
-   };
+   let email    = Email::parse(   &request.email   ).map_err(|_| AuthAPIError::InvalidCredentials)?;
+   let password = Password::parse(&request.password).map_err(|_| AuthAPIError::InvalidCredentials)?;
+   let store    = state.user_store.read().await;
 
-   let store = state.user_store.read().await;
-   match store.get_user(&email).await {
-      Ok(user) => {
-         println!("User with email {} located.", &email);
-         if user.password == password {
-            let message  = "User located".to_owned();
-            let response = Json(LoginResponse{message});
-            Ok(StatusCode::OK.into_response())
-         } else {
-            println!("Invalid password for user with email {}", &email);
-            Err(AuthAPIError::InvalidCredentials)
-         }
+   match store.validate_user(&email, &password).await {
+      Ok(_) => {
+         println!("User with email {} authenticated.", &email);
+         let message  = "User authenticated".to_owned();
+         let response = Json(LoginResponse{message});
+         Ok((StatusCode::OK, response))
       },
       Err(e) => {
-         println!("Error locating user: {:?}", e);
-         Err(AuthAPIError::InvalidCredentials)
-      } 
+         println!("Error validating user: {:?}", e);
+         Err(AuthAPIError::IncorrectCredentials)
+      }
    }
 }

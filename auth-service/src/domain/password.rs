@@ -18,14 +18,22 @@ impl Password {
     }
 
     pub fn is_valid(password: &str) -> Result<(), PasswordError> {
+        println!("Password::is_valid: Entry");
         if password.is_empty()                         { return Err(PasswordError::BlankValue);      }
+        println!("Password::is_valid: Not Empty");
         if password.len() < 8                          { return Err(PasswordError::TooShort); }
+        println!("Password::is_valid: Not Short");
         if !password.chars().any(|c| c.is_uppercase()) { return Err(PasswordError::Insecure); }
+        println!("Password::is_valid: Has uppercase");
         if !password.chars().any(|c| c.is_lowercase()) { return Err(PasswordError::Insecure); }
+        println!("Password::is_valid: Has lowercase");
         if !password.chars().any(|c| c.is_digit(10)) { return Err(PasswordError::Insecure); }
+        println!("Password::is_valid: Has digit");
         if !password.chars().any(|c| "!@#$%^&*()_+-=[]{}|;':\",.<>?/`~".contains(c)) {
+            println!("Password::is_valid: No special");
             return Err(PasswordError::Insecure);
         }
+        println!("Password::is_valid: Entry");
         Ok(())
     }            
             

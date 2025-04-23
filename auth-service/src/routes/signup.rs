@@ -10,7 +10,7 @@ use crate::domain::error::AuthAPIError;
 use crate::domain::password::Password;
 use crate::domain::user::User;
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Serialize)]
 pub struct SignupRequest {
     pub email:          String,
     pub password:       String,

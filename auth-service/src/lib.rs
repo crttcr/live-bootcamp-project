@@ -1,14 +1,8 @@
-use crate::domain::error::AuthAPIError;
 use crate::routes::*;
 use app_state::AppState;
-use axum::http::StatusCode;
-use axum::response::{IntoResponse, Response};
 use axum::routing::post;
 use axum::serve::Serve;
-use axum::Json;
 use axum::Router;
-use serde::Deserialize;
-use serde::Serialize;
 use tower_http::services::ServeDir;
 
 pub mod app_state;
@@ -50,25 +44,4 @@ impl Application {
         println!("listening on {}", &self.address);
         self.server.await
     }
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct ErrorResponse {
-    pub error: String,
-}
-
-impl IntoResponse for AuthAPIError 
-{
-   fn into_response(self) -> Response {
-       let (status, error_message) = match self 
-       {
-           AuthAPIError::UserAlreadyExists  => (StatusCode::CONFLICT,              "User already exists"),
-           AuthAPIError::InvalidCredentials => (StatusCode::BAD_REQUEST,           "Invalid credentials"),
-           AuthAPIError::UnexpectedError    => (StatusCode::INTERNAL_SERVER_ERROR, "Unexpected error"),
-       };
-       let error = error_message.to_string();
-       let error = ErrorResponse{error};
-       let body  = Json(error);
-       (status, body).into_response()
-   }
 }

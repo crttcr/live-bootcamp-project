@@ -1,11 +1,10 @@
+use auth_service::app_state::AppState;
+use auth_service::services::hashmap_user_store::HashmapUserStore;
 use auth_service::Application;
 use serde::Serialize;
-use uuid::Uuid;
-use auth_service::services::hashmap_user_store::HashmapUserStore;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use auth_service::app_state::AppState;
-
+use uuid::Uuid;
 
 pub struct TestApp
 {
@@ -54,14 +53,18 @@ impl TestApp {
 
 	pub async fn post_login<Body>(&self, body: &Body) -> reqwest::Response 
 	where
-		Body: Serialize,
+		Body: Serialize + std::fmt::Debug,
 	{
-		self.http_client
+		println!("Calling post_login");
+		println!("Body: {:?}", body);
+		let rv = self.http_client
 			.post(&format!("{}/login", &self.address))
 			.json(body)
 			.send()
 			.await
-			.expect("Failed to execute login request.")
+			.expect("Failed to execute login request.");
+		println!("Returning {}", rv.status());
+		rv
 	}
 
 	pub async fn post_logout(&self) -> reqwest::Response {

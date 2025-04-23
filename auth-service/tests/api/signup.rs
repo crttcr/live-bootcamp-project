@@ -1,10 +1,9 @@
 use crate::helpers::TestApp;
 
-use auth_service::ErrorResponse;
+use auth_service::domain::error::ErrorResponse;
 use auth_service::routes::signup::SignupResponse;
 use crate::helpers::get_random_email;
 use serde_json::json;
-
 
 
 /*
