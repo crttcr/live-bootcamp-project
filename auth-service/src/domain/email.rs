@@ -1,4 +1,3 @@
-
 use validator::validate_email;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -13,25 +12,31 @@ pub struct Email(String);
 
 
 impl Email {
-    pub fn parse(email: &str) -> Result<Self, EmailError> {
-        let has_whitespace = email.chars().any(char::is_whitespace);
-        if email.is_empty()          { return Err(EmailError::EmptyValue);      }  
+    pub fn parse(s: String) -> Result<Self, EmailError> {
+        let has_whitespace = s.chars().any(char::is_whitespace);
+        if s.is_empty()          { return Err(EmailError::EmptyValue);      }
         if has_whitespace            { return Err(EmailError::BadFormat);       }
-        if !email.contains('@')      { return Err(EmailError::MissingAtSymbol); }
-        let parts: Vec<&str> = email.split('@').collect();
+        if !s.contains('@')      { return Err(EmailError::MissingAtSymbol); }
+        let parts: Vec<&str> = s.split('@').collect();
         if parts.len() != 2 { return Err(EmailError::BadFormat); }
         if parts[0].starts_with('.') { return Err(EmailError::BadFormat); }
         if parts[0].ends_with('.')   { return Err(EmailError::BadFormat); }
         if !parts[1].contains('.')   { return Err(EmailError::BadFormat); }
         if parts[1].starts_with('.') { return Err(EmailError::BadFormat); }
         if parts[1].ends_with('.')   { return Err(EmailError::BadFormat); }
-
-        match validate_email(email) {
-            false => return Err(EmailError::BadFormat),
-            true  => {}
+        
+        if validate_email(&s) {
+            Ok(Email(s))
+        } else {
+            Err(EmailError::BadFormat)
         }
-        let rv = Email(email.to_owned());
-        Ok(rv)
+
+        // match validate_email(email) {
+        //     false => return Err(EmailError::BadFormat),
+        //     true  => {}
+        // }
+        // let rv = Email(email.to_owned());
+        // Ok(rv)
     }
 
     pub fn get_email(&self) -> &str {&self.0}

@@ -1,4 +1,3 @@
-
 pub use crate::domain::data_stores::UserStore;
 pub use crate::domain::data_stores::UserStoreError;
 use crate::domain::email::Email;

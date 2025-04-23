@@ -1,0 +1,13 @@
+
+.DS_Store
+
+**/.idea/
+**/.vscode/
+**/target/
+
+.env
+.env-dev
+.env-test
+.env-stage
+.env-prod
+

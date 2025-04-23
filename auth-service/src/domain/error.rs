@@ -1,12 +1,14 @@
 use axum::http::StatusCode;
-use axum::Json;
 use axum::response::{IntoResponse, Response};
+use axum::Json;
 use serde::{Deserialize, Serialize};
 
 pub enum AuthAPIError 
 {
    IncorrectCredentials,
    InvalidCredentials,
+   InvalidToken,
+   MissingToken,
    UnexpectedError,
    UserAlreadyExists,
 }
@@ -17,8 +19,10 @@ impl IntoResponse for AuthAPIError
    {
       let (status, error_message) = match self {
          AuthAPIError::IncorrectCredentials  => (StatusCode::UNAUTHORIZED,          "Authorization failure"),
-         AuthAPIError::UserAlreadyExists     => (StatusCode::CONFLICT,              "User already exists"  ),
          AuthAPIError::InvalidCredentials    => (StatusCode::BAD_REQUEST,           "Invalid credentials"  ),
+         AuthAPIError::InvalidToken          => (StatusCode::UNAUTHORIZED,          "Invalid token "       ),
+         AuthAPIError::MissingToken          => (StatusCode::BAD_REQUEST,           "Missing token"        ),
+         AuthAPIError::UserAlreadyExists     => (StatusCode::CONFLICT,              "User already exists"  ),
          AuthAPIError::UnexpectedError       => (StatusCode::INTERNAL_SERVER_ERROR, "Unexpected error"     ),
       };
       let error = error_message.to_string();

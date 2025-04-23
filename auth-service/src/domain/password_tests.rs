@@ -1,4 +1,3 @@
-
 use crate::domain::password::{Password, PasswordError};
 
 

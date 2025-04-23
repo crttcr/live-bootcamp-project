@@ -1,14 +1,17 @@
 use auth_service::app_state::AppState;
 use auth_service::services::hashmap_user_store::HashmapUserStore;
 use auth_service::Application;
+use reqwest::cookie::Jar;
 use serde::Serialize;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use uuid::Uuid;
+use auth_service::utils::constants::test;
 
 pub struct TestApp
 {
 	pub address:     String,
+	pub cookie_jar:  Arc<Jar>,
 	pub http_client: reqwest::Client,
 }
 
@@ -17,18 +20,22 @@ impl TestApp {
 		let user_store = HashmapUserStore::default();
 		let user_store = Arc::new(RwLock::new(user_store));
 		let app_state  = AppState::new(user_store);
-		let app        = Application::build(app_state, "127.0.0.1:0")
+		let app        = Application::build(app_state, test::APP_ADDRESS)
 			.await
 			.expect("Failed to build app");
 
+		let cookie_jar = Arc::new(Jar::default());
 		let address    = format!("http://{}", app.address.clone());
 
 		// Run the auth service in a separate async task
 		// to avoid blocking the main test thread.
 		#[allow(clippy::let_underscore_future)]
 		let _           = tokio::spawn(app.run());
-		let http_client = reqwest::Client::new(); // Create a Reqwest http client instance
-		TestApp{address, http_client}
+		let http_client = reqwest::Client::builder()
+			.cookie_provider(cookie_jar.clone())
+			.build()
+			.expect("Failed to build http client");
+		TestApp{address, cookie_jar, http_client}
 	}
 
 	pub async fn get_root(&self) -> reqwest::Response {

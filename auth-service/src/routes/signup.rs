@@ -28,7 +28,7 @@ pub async fn signup(
     Json(request):  Json<SignupRequest>,
     ) -> impl IntoResponse {
     println!("Received signup request: {:?}", request);
-    let email    = Email::parse(   &request.email   ).map_err(|_| AuthAPIError::InvalidCredentials)?;
+    let email    = Email::parse(    request.email   ).map_err(|_| AuthAPIError::InvalidCredentials)?;
     let password = Password::parse(&request.password).map_err(|_| AuthAPIError::InvalidCredentials)?;
     
     let mut store = state.user_store.write().await;
