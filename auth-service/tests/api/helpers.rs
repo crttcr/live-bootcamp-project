@@ -50,8 +50,9 @@ impl TestApp {
 	where
 		Body: Serialize,
 	{
+		let url = format!("{}/signup", &self.address);
 		self.http_client
-			.post(&format!("{}/signup", &self.address))
+			.post(url)
 			.json(body)
 			.send()
 			.await
@@ -64,8 +65,9 @@ impl TestApp {
 	{
 		println!("Calling post_login");
 		println!("Body: {:?}", body);
+		let url = format!("{}/login", &self.address);
 		let rv = self.http_client
-			.post(&format!("{}/login", &self.address))
+			.post(url)
 			.json(body)
 			.send()
 			.await
@@ -75,24 +77,30 @@ impl TestApp {
 	}
 
 	pub async fn post_logout(&self) -> reqwest::Response {
+		let url = format!("{}/logout", &self.address);
 		self.http_client
-			.post(&format!("{}/logout", &self.address))
+			.post(url)
 			.send()
 			.await
 			.expect("Failed to execute logout request.")
 	}
 
 	pub async fn post_verify_2fa(&self) -> reqwest::Response {
+		let url = format!("{}/verify-2fa", &self.address);
 		self.http_client
-			.post(&format!("{}/verify-2fa", &self.address))
+			.post(url)
 			.send()
 			.await
 			.expect("Failed to execute verify_2fa request.")
 	}
 
-	pub async fn post_verify_token(&self) -> reqwest::Response {
+	pub async fn post_verify_token<Body>(&self, body: &Body) -> reqwest::Response 
+		where Body: Serialize
+	{
+		let url = format!("{}/verify-token", &self.address);
 		self.http_client
-			.post(&format!("{}/verify-token", &self.address))
+			.post(url)
+			.json(body)
 			.send()
 			.await
 			.expect("Failed verify_token request.")
