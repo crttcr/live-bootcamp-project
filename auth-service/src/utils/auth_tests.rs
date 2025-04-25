@@ -1,10 +1,11 @@
-use std::sync::{Arc, RwLock};
 use axum_extra::extract::cookie::{Cookie, SameSite};
 use chrono::Utc;
 use crate::domain::email::Email;
 use crate::services::hashset_token_store::HashSetTokenStore;
 use crate::utils::auth::*;
 use crate::utils::constants::*;
+use std::sync::Arc;
+use tokio::sync::RwLock;
 
 fn assert_basic_cookie_properties(c: &Cookie) {
 	assert_eq!(c.name(),      JWT_COOKIE_NAME);
@@ -38,11 +39,10 @@ async fn test_generate_auth_token_result_has_3_parts() {
 
 #[tokio::test]
 async fn test_valid_token_passes_validation() {
-	let email  = Email::parse("test@example.com".to_owned()).unwrap();
-	let tokens: Arc<RwLock<HashSetTokenStore>> = Arc::new(RwLock::new(HashSetTokenStore::new()));
-	let token  = generate_auth_token(&email).unwrap();
-//	let result = validate_token(&tokens, token.as_str()).await.unwrap();
-	let result = validate_token(token.as_str()).await.unwrap();
+	let email         = Email::parse("a@b.com".to_owned()).unwrap();
+	let token         = generate_auth_token(&email).unwrap();
+	let banned_tokens =  Arc::new(RwLock::new(HashSetTokenStore::new()));
+	let result        = validate_token(token.as_str(), banned_tokens).await.unwrap();
 	assert_eq!(result.sub, "test@example.com");
 
 	let exp = Utc::now()
@@ -55,7 +55,8 @@ async fn test_valid_token_passes_validation() {
 
 #[tokio::test]
 async fn test_invalid_token_fails_validation() {
-	let token  = "invalid_token".to_owned();
-	let result = validate_token(&token).await;
+	let token         = "invalid_token".to_owned();
+	let banned_tokens = Arc::new(RwLock::new(HashSetTokenStore::new()));
+	let result        = validate_token(&token, banned_tokens).await;
 	assert!(result.is_err());
 }

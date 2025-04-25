@@ -6,8 +6,8 @@ use crate::domain::TokenStore;
 
 type UserStoreTraitObject  = dyn UserStore  + Send + Sync;
 type TokenStoreTraitObject = dyn TokenStore + Send + Sync;
-pub type UserStoreType        = Arc<RwLock< UserStoreTraitObject>>;
-pub type TokenStoreType       = Arc<RwLock<TokenStoreTraitObject>>;
+pub type UserStoreType     = Arc<RwLock< UserStoreTraitObject>>;
+pub type TokenStoreType    = Arc<RwLock<TokenStoreTraitObject>>;
 
 #[derive(Clone)]
 pub struct AppState {

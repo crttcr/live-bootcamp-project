@@ -1,4 +1,6 @@
+use std::sync::Arc;
 use super::constants::{JWT_COOKIE_NAME, JWT_SECRET, TOKEN_TTL_SECONDS};
+use crate::app_state::TokenStoreType;
 use crate::domain::email::Email;
 use crate::domain::TokenStore;
 use axum_extra::extract::cookie::{Cookie, SameSite};
@@ -7,6 +9,7 @@ use jsonwebtoken;
 use jsonwebtoken::errors::{Error, ErrorKind};
 use jsonwebtoken::{DecodingKey, EncodingKey, Validation};
 use serde::{Deserialize, Serialize};
+use tokio::sync::RwLock;
 
 // Create cookie with a new JWT auth token
 //
@@ -29,7 +32,7 @@ pub fn create_auth_cookie(token: String) -> Cookie<'static> {
 #[derive(Debug)]
 pub enum GenerateTokenError
 {
-	TokenError(jsonwebtoken::errors::Error),
+	TokenError(Error),
 	UnexpectedError,
 }
 
@@ -58,20 +61,25 @@ pub fn generate_auth_token(email: &Email) -> Result<String, GenerateTokenError> 
 
 // Check if JWT auth token is valid by decoding it using the JWT secret
 //
-pub async fn validate_token(token: &str) -> Result<Claims, Error> {
+pub async fn validate_token(
+	token:           &str,
+	banned_tokens:   Arc<RwLock<dyn TokenStore + Send + Sync>>, // TokenStoreType,
+	) -> Result<Claims, Error> {
 	println!("Validating token\n\t{:?}", token);
 
-	/*
-	if let Ok(true) = banned_tokens.token_exists(token).await {
-		println!("Token is banned: {:?}", token);
-		return Err(Error::from(ErrorKind::InvalidAlgorithmName));
+	match banned_tokens.read().await.token_exists(token).await {
+		Ok(true) => {
+			println!("Token is banned: {:?}", token);
+			return Err(Error::from(ErrorKind::InvalidToken));
+		},
+		Err(_) => {return Err(Error::from(ErrorKind::InvalidToken))},
+		_ => {}
 	}
-	*/
 
 	let key        = DecodingKey::from_secret(JWT_SECRET.as_bytes());
 	let validation = &Validation::default();
 	let data       = jsonwebtoken::decode::<Claims>(token, &key, &validation);
-	let claims     = data.map(|data| data.claims);
+	let claims     = data.map(|v| v.claims);
 	println!("\t{:?}", claims);
 	claims
 }

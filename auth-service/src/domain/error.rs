@@ -22,8 +22,8 @@ impl IntoResponse for AuthAPIError
          AuthAPIError::InvalidCredentials    => (StatusCode::BAD_REQUEST,           "Invalid credentials"  ),
          AuthAPIError::InvalidToken          => (StatusCode::UNAUTHORIZED,          "Invalid token "       ),
          AuthAPIError::MissingToken          => (StatusCode::BAD_REQUEST,           "Missing token"        ),
-         AuthAPIError::UserAlreadyExists     => (StatusCode::CONFLICT,              "User already exists"  ),
          AuthAPIError::UnexpectedError       => (StatusCode::INTERNAL_SERVER_ERROR, "Unexpected error"     ),
+         AuthAPIError::UserAlreadyExists     => (StatusCode::CONFLICT,              "User already exists"  ),
       };
       let error = error_message.to_string();
       let error = ErrorResponse{error};
