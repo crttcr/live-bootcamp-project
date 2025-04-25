@@ -43,13 +43,12 @@ async fn test_valid_token_passes_validation() {
 	let token         = generate_auth_token(&email).unwrap();
 	let banned_tokens =  Arc::new(RwLock::new(HashSetTokenStore::new()));
 	let result        = validate_token(token.as_str(), banned_tokens).await.unwrap();
-	assert_eq!(result.sub, "test@example.com");
+	assert_eq!(result.sub, "a@b.com");
 
 	let exp = Utc::now()
 		.checked_add_signed(chrono::Duration::try_minutes(9).expect("valid duration"))
 		.expect("valid timestamp")
 		.timestamp();
-
 	assert!(result.exp > exp as usize);
 }
 

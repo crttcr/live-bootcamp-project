@@ -1,9 +1,9 @@
 extern crate core;
 
-use axum::handler::{Handler, HandlerWithoutStateExt};
 use crate::routes::*;
 use crate::utils::constants::{prod, test};
 use app_state::AppState;
+use axum::handler::Handler;
 use axum::http::Method;
 use axum::routing::{post, post_service};
 use axum::serve::Serve;

@@ -1,15 +1,12 @@
-use std::sync::Arc;
 use super::constants::{JWT_COOKIE_NAME, JWT_SECRET, TOKEN_TTL_SECONDS};
 use crate::app_state::TokenStoreType;
 use crate::domain::email::Email;
-use crate::domain::TokenStore;
 use axum_extra::extract::cookie::{Cookie, SameSite};
 use chrono::Utc;
 use jsonwebtoken;
 use jsonwebtoken::errors::{Error, ErrorKind};
 use jsonwebtoken::{DecodingKey, EncodingKey, Validation};
 use serde::{Deserialize, Serialize};
-use tokio::sync::RwLock;
 
 // Create cookie with a new JWT auth token
 //
@@ -63,7 +60,7 @@ pub fn generate_auth_token(email: &Email) -> Result<String, GenerateTokenError> 
 //
 pub async fn validate_token(
 	token:           &str,
-	banned_tokens:   Arc<RwLock<dyn TokenStore + Send + Sync>>, // TokenStoreType,
+	banned_tokens:   TokenStoreType,
 	) -> Result<Claims, Error> {
 	println!("Validating token\n\t{:?}", token);
 
