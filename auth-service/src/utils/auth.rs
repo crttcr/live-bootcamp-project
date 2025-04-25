@@ -33,9 +33,6 @@ pub enum GenerateTokenError
 	UnexpectedError,
 }
 
-// This value determines how long the JWT auth token is valid for
-//
-
 // Create JWT auth token
 pub fn generate_auth_token(email: &Email) -> Result<String, GenerateTokenError> {
 	let delta = chrono::Duration::try_seconds(TOKEN_TTL_SECONDS).ok_or(GenerateTokenError::UnexpectedError)?;
@@ -46,7 +43,7 @@ pub fn generate_auth_token(email: &Email) -> Result<String, GenerateTokenError> 
 		.ok_or(GenerateTokenError::UnexpectedError)?
 		.timestamp();
 
-	// Cast exp to a usize, which is what Claims expects
+	// Cast exp to ize, which is what Claims expects
 	let exp: usize = exp
 		.try_into()
 		.map_err(|_| GenerateTokenError::UnexpectedError)?;

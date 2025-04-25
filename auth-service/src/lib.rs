@@ -3,9 +3,8 @@ extern crate core;
 use crate::routes::*;
 use crate::utils::constants::{prod, test};
 use app_state::AppState;
-use axum::handler::Handler;
 use axum::http::Method;
-use axum::routing::{post, post_service};
+use axum::routing::post;
 use axum::serve::Serve;
 use axum::Router;
 use tower_http::cors::CorsLayer;
@@ -45,9 +44,9 @@ impl Application {
             .nest_service("/",        ServeDir::new("assets"))
             .route("/signup",         post(signup))
             .route("/login",          post(login))
-            .route("/logout",         post_service(logout.with_state(app_state.clone())))
+            .route("/logout",         post(logout))
             .route("/verify-2fa",     post(verify_2fa))
-            .route("/verify-token",   post_service(verify_token.with_state(app_state.clone())))
+            .route("/verify-token",   post(verify_token))
             .with_state(app_state)
             .layer(cors);
 

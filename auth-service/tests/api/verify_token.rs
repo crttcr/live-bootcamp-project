@@ -1,6 +1,5 @@
 use serde_json::json;
 use crate::helpers::TestApp;
-use auth_service::{utils::constants::JWT_COOKIE_NAME};
 use auth_service::domain::Email;
 use auth_service::utils::auth::generate_auth_token;
 use crate::helpers::{get_random_email};
@@ -34,7 +33,6 @@ async fn should_return_422_if_malformed_input() {
 }
 
 
-
 #[tokio::test]
 async fn should_return_401_if_invalid_token() {
     let app      = TestApp::new().await;
@@ -57,10 +55,14 @@ async fn should_return_401_if_banned_token() {
     //
     let mut tokens = app.banned_tokens.write().await;
     tokens.add_token(token.clone()).await.unwrap();
+    println!("token added");
+    assert!(false);
     
     // Now that we have added the token to the banned tokens set, let's
     // post it.
     let body     = json!({"token": token});
+    println!("created body {}", body);
     let response = app.post_verify_token(&body).await;
+    println!("Asserting result");
     assert_eq!(response.status().as_u16(), 201);
 }
