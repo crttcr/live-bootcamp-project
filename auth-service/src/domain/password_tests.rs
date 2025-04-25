@@ -1,4 +1,3 @@
-
 use crate::domain::password::{Password, PasswordError};
 
 
@@ -67,3 +66,4 @@ pub fn password_without_symbols_is_insecure()
          Err(e) => { assert_eq!(e, PasswordError::Insecure); }
       }
 }
+

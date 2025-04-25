@@ -1,8 +1,7 @@
-use super::password::Password;
 use super::email::Email;
+use super::password::Password;
 
-
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct User {
       pub email:        Email,
       pub password:     Password,
@@ -11,10 +10,6 @@ pub struct User {
 
 impl User {
    pub fn new(email: Email, password: Password, requires_2fa: bool) -> Self {
-      User {
-         email,
-         password,
-         requires_2fa,
-      }
+      User {email, password, requires_2fa}
    }
 }

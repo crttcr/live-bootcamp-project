@@ -1,10 +1,9 @@
 use crate::helpers::TestApp;
 
-use auth_service::ErrorResponse;
+use auth_service::domain::error::ErrorResponse;
 use auth_service::routes::signup::SignupResponse;
 use crate::helpers::get_random_email;
 use serde_json::json;
-
 
 
 /*
@@ -66,7 +65,7 @@ pub async fn should_succeed_with_the_expected_result() {
 }
 
 #[tokio::test]
-pub async fn signup_should_return_442_upon_malformed_imput()
+pub async fn should_return_422_upon_malformed_input()
 {
     let app          = TestApp::new().await;
     let random_email = get_random_email();

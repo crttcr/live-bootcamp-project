@@ -1,12 +1,11 @@
-
 use core::panic;
 
+use crate::domain::data_stores::UserStore;
+use crate::domain::data_stores::UserStoreError;
+use crate::domain::email::Email;
+use crate::domain::password::Password;
 use crate::domain::user::User;
 use crate::services::hashmap_user_store::HashmapUserStore;
-use crate::domain::data_stores::UserStoreError;
-use crate::domain::data_stores::UserStore;
-use crate::domain::password::Password;
-use crate::domain::email::Email;
 
 #[tokio::test]
 async fn test_add_user() {
@@ -28,14 +27,13 @@ async fn test_add_user() {
 #[tokio::test]
 async fn test_failed_lookup_returns_user_not_found() {
    let store   = HashmapUserStore::default();
-   let email   = Email::parse("somebody@missing.com").unwrap();
+   let email   = Email::parse("somebody@missing.com".to_owned()).unwrap();
    let missing = store.get_user(&email).await;
    match missing {
       Err(UserStoreError::UserNotFound) => { println!("Correctly failed to find missing user"); }
       Err(e)                            => { panic!("Unexpected error: {:?}", e); }
       Ok(_)                             => { panic!("Missing user located");
       }
-       
    }
 }
 
@@ -55,7 +53,7 @@ async fn test_user_can_be_retrieved_from_store() {
 #[tokio::test]
 async fn test_validate_user() {
    let mut store = HashmapUserStore::default();
-   let email     = Email::parse("joe@boo.io").unwrap();
+   let email     = Email::parse("joe@boo.io".to_owned()).unwrap();
    let password  = Password::parse("Horse1234!").unwrap();
    let user      = User::new(email.to_owned(), password.to_owned(), false);
    let _         = store.add_user(user).await;
@@ -68,7 +66,7 @@ async fn test_validate_user() {
 
 async fn construct_store_with_test_user<'a>() -> (Email, HashmapUserStore) {
    let mut store = HashmapUserStore::default();
-   let email     = Email::parse("joe@boo.io").unwrap();
+   let email     = Email::parse("joe@boo.io".to_owned()).unwrap();
    let password  = Password::parse("Horse1234!").unwrap();
    let user      = User::new(email.clone(), password, false);
    let _         = store.add_user(user).await;
