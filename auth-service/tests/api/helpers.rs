@@ -1,4 +1,4 @@
-use auth_service::app_state::AppState;
+use auth_service::app_state::{AppState, TokenStoreType};
 use auth_service::services::hashmap_user_store::HashmapUserStore;
 use auth_service::Application;
 use reqwest::cookie::Jar;
@@ -6,21 +6,25 @@ use serde::Serialize;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use uuid::Uuid;
+use auth_service::services::hashset_token_store::HashSetTokenStore;
 use auth_service::utils::constants::test;
 
 pub struct TestApp
 {
-	pub address:     String,
-	pub cookie_jar:  Arc<Jar>,
-	pub http_client: reqwest::Client,
+	pub address:        String,
+	pub banned_tokens:  TokenStoreType,
+	pub cookie_jar:     Arc<Jar>,
+	pub http_client:    reqwest::Client,
 }
 
 impl TestApp {
 	pub async fn new() -> Self {
-		let user_store = HashmapUserStore::default();
-		let user_store = Arc::new(RwLock::new(user_store));
-		let app_state  = AppState::new(user_store);
-		let app        = Application::build(app_state, test::APP_ADDRESS)
+		let user_store    = HashmapUserStore::default();
+		let user_store    = Arc::new(RwLock::new(user_store));
+		let token_store   = HashSetTokenStore::new();
+		let banned_tokens = Arc::new(RwLock::new(token_store));
+		let app_state     = AppState::new(user_store, banned_tokens.clone());
+		let app           = Application::build(app_state, test::APP_ADDRESS)
 			.await
 			.expect("Failed to build app");
 
@@ -30,12 +34,12 @@ impl TestApp {
 		// Run the auth service in a separate async task
 		// to avoid blocking the main test thread.
 		#[allow(clippy::let_underscore_future)]
-		let _           = tokio::spawn(app.run());
-		let http_client = reqwest::Client::builder()
+		let _             = tokio::spawn(app.run());
+		let http_client   = reqwest::Client::builder()
 			.cookie_provider(cookie_jar.clone())
 			.build()
 			.expect("Failed to build http client");
-		TestApp{address, cookie_jar, http_client}
+		TestApp{address, banned_tokens, cookie_jar, http_client}
 	}
 
 	pub async fn get_root(&self) -> reqwest::Response {

@@ -1,3 +1,5 @@
+extern crate core;
+
 use crate::routes::*;
 use crate::utils::constants::{prod, test};
 use app_state::AppState;

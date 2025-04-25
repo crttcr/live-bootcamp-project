@@ -34,7 +34,6 @@ async fn test_failed_lookup_returns_user_not_found() {
       Err(e)                            => { panic!("Unexpected error: {:?}", e); }
       Ok(_)                             => { panic!("Missing user located");
       }
-       
    }
 }
 

@@ -1,7 +1,8 @@
+use std::sync::{Arc, RwLock};
 use axum_extra::extract::cookie::{Cookie, SameSite};
 use chrono::Utc;
-
 use crate::domain::email::Email;
+use crate::services::hashset_token_store::HashSetTokenStore;
 use crate::utils::auth::*;
 use crate::utils::constants::*;
 
@@ -38,8 +39,10 @@ async fn test_generate_auth_token_result_has_3_parts() {
 #[tokio::test]
 async fn test_valid_token_passes_validation() {
 	let email  = Email::parse("test@example.com".to_owned()).unwrap();
+	let tokens: Arc<RwLock<HashSetTokenStore>> = Arc::new(RwLock::new(HashSetTokenStore::new()));
 	let token  = generate_auth_token(&email).unwrap();
-	let result = validate_token(&token).await.unwrap();
+//	let result = validate_token(&tokens, token.as_str()).await.unwrap();
+	let result = validate_token(token.as_str()).await.unwrap();
 	assert_eq!(result.sub, "test@example.com");
 
 	let exp = Utc::now()

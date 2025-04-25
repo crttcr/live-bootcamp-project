@@ -1,8 +1,10 @@
 use super::constants::{JWT_COOKIE_NAME, JWT_SECRET, TOKEN_TTL_SECONDS};
 use crate::domain::email::Email;
+use crate::domain::TokenStore;
 use axum_extra::extract::cookie::{Cookie, SameSite};
 use chrono::Utc;
 use jsonwebtoken;
+use jsonwebtoken::errors::{Error, ErrorKind};
 use jsonwebtoken::{DecodingKey, EncodingKey, Validation};
 use serde::{Deserialize, Serialize};
 
@@ -13,7 +15,7 @@ pub fn generate_auth_cookie(email: &Email) -> Result<Cookie<'static>, GenerateTo
 	Ok(create_auth_cookie(token))
 }
 
-// Create cookie and set the value to the passed-in token string 
+// Create cookie and set the value to the passed-in token string
 //
 pub fn create_auth_cookie(token: String) -> Cookie<'static> {
 	let cookie = Cookie::build((JWT_COOKIE_NAME, token))
@@ -25,7 +27,7 @@ pub fn create_auth_cookie(token: String) -> Cookie<'static> {
 }
 
 #[derive(Debug)]
-pub enum GenerateTokenError 
+pub enum GenerateTokenError
 {
 	TokenError(jsonwebtoken::errors::Error),
 	UnexpectedError,
@@ -56,18 +58,26 @@ pub fn generate_auth_token(email: &Email) -> Result<String, GenerateTokenError> 
 
 // Check if JWT auth token is valid by decoding it using the JWT secret
 //
-pub async fn validate_token(token: &str) -> Result<Claims, jsonwebtoken::errors::Error> {
-	// println!("Validating token\n\t{:?}", token);
+pub async fn validate_token(token: &str) -> Result<Claims, Error> {
+	println!("Validating token\n\t{:?}", token);
+
+	/*
+	if let Ok(true) = banned_tokens.token_exists(token).await {
+		println!("Token is banned: {:?}", token);
+		return Err(Error::from(ErrorKind::InvalidAlgorithmName));
+	}
+	*/
+
 	let key        = DecodingKey::from_secret(JWT_SECRET.as_bytes());
 	let validation = &Validation::default();
 	let data       = jsonwebtoken::decode::<Claims>(token, &key, &validation);
 	let claims     = data.map(|data| data.claims);
-	//  println!("\t{:?}", claims);
+	println!("\t{:?}", claims);
 	claims
 }
 
 // Create JWT auth token by encoding claims using the JWT secret
-// 
+//
 fn create_token(claims: &Claims) -> Result<String, jsonwebtoken::errors::Error> {
 	jsonwebtoken::encode(
 		&jsonwebtoken::Header::default(),
