@@ -10,10 +10,10 @@ use axum_extra::extract::{cookie, CookieJar};
 pub async fn logout(
    State(state):   State<AppState>,
    jar:            CookieJar,
-   ) -> (CookieJar, Result<impl IntoResponse, AuthAPIError>) {
+   ) -> Result<(CookieJar, impl IntoResponse), AuthAPIError> {
    let cookie = match jar.get(JWT_COOKIE_NAME) {
       Some(c) => c,
-      None    => {return (jar, Err(AuthAPIError::MissingToken)); }
+      None    => {return Err(AuthAPIError::MissingToken) }
    };
    
    // Validate token
@@ -21,7 +21,7 @@ pub async fn logout(
    println!("Token: {}", token);
    let store = state.banned_tokens.clone();
    if let Err(_) = validate_token(token, store).await {
-      return (jar, Err(AuthAPIError::InvalidToken));
+      return Err(AuthAPIError::InvalidToken);
    }
    
    // Add token to banned tokens store
@@ -29,7 +29,7 @@ pub async fn logout(
       .write().await
       .add_token(token.to_owned()).await
       .is_err() {
-      return (jar, Err(AuthAPIError::UnexpectedError));
+      return Err(AuthAPIError::UnexpectedError);
    }
    let count = state.banned_tokens.read().await.count().await.unwrap();
    println!("Banned Count: {}", count);
@@ -38,5 +38,5 @@ pub async fn logout(
    let cookie = cookie::Cookie::from(JWT_COOKIE_NAME);
    let jar    = jar.remove(cookie);
    println!("Cookie removed from jar. {}.", jar.iter().count());
-   (jar, Ok(StatusCode::OK))
+   Ok((jar, StatusCode::OK))
 }

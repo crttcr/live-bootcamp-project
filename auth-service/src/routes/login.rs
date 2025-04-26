@@ -25,35 +25,25 @@ pub async fn login(
     State(state):   State<AppState>,
     jar:            CookieJar,
     Json(request):  Json<LoginRequest>,
-) -> (CookieJar, Result<impl IntoResponse, AuthAPIError>){
+) -> Result<(CookieJar, impl IntoResponse), AuthAPIError>{
     println!("Received login request: {:?}", request);
-
-    let email = match Email::parse(request.email) {  
-        Ok(v)  => v,
-        Err(_) => return (jar, Err(AuthAPIError::InvalidCredentials)),
-    };
-
-    let password = match Password::parse(&request.password) {
-        Ok(v)  => v,
-        Err(_) => return (jar, Err(AuthAPIError::InvalidCredentials))
-    };
-
+    let email    = Email::parse(request.email).map_err(|_| AuthAPIError::InvalidCredentials)?;
+    let password = Password::parse(&request.password).map_err(|_| AuthAPIError::InvalidCredentials)?;
     let store    = state.user_store.read().await;
-
     match store.validate_user(&email, &password).await {
         Ok(_) => {
             println!("User with email {} authenticated.", &email);
             let auth_cookie = match generate_auth_cookie(&email) {
                 Ok(v) => v,
-                Err(_) => return (jar, Err(AuthAPIError::UnexpectedError)),
+                Err(_) => return Err(AuthAPIError::UnexpectedError),
             };
             let updated_jar = jar.add(auth_cookie);
             println!("Cookie jar updated. {}.", updated_jar.iter().count());
-            (updated_jar, Ok(StatusCode::OK.into_response()))
+            Ok((updated_jar, StatusCode::OK.into_response()))
         },
         Err(e) => {
             println!("Validation failed: {:?}", e);
-            (jar, Err(AuthAPIError::IncorrectCredentials))
+            Err(AuthAPIError::IncorrectCredentials)
         }
     }
 }
