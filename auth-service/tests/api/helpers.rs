@@ -4,6 +4,7 @@ use auth_service::Application;
 use reqwest::cookie::Jar;
 use serde::Serialize;
 use std::sync::Arc;
+use reqwest::Body;
 use tokio::sync::RwLock;
 use uuid::Uuid;
 use auth_service::services::hashset_token_store::HashSetTokenStore;
@@ -39,7 +40,7 @@ impl TestApp {
 			.cookie_provider(cookie_jar.clone())
 			.build()
 			.expect("Failed to build http client");
-		TestApp{address, banned_tokens, cookie_jar, http_client}
+		Self{address, banned_tokens, cookie_jar, http_client}
 	}
 
 	pub async fn get_root(&self) -> reqwest::Response {
@@ -89,7 +90,8 @@ impl TestApp {
 			.expect("Failed to execute logout request.")
 	}
 
-	pub async fn post_verify_2fa(&self) -> reqwest::Response {
+	pub async fn post_verify_2fa(&self) -> reqwest::Response 
+	{
 		let url = format!("{}/verify-2fa", &self.address);
 		self.http_client
 			.post(url)

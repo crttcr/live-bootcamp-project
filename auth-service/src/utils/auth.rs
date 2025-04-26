@@ -8,13 +8,39 @@ use jsonwebtoken::errors::{Error, ErrorKind};
 use jsonwebtoken::{DecodingKey, EncodingKey, Validation};
 use serde::{Deserialize, Serialize};
 
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Claims {
+	pub sub: String,
+	pub exp: usize,
+}
+
+//
+// TODO: Create our own error type independent from jsonwebtoken::errors::Error
+//
+
+#[derive(Debug)]
+pub enum GenerateTokenError
+{
+	TokenError(Error),
+	UnexpectedError,
+}
+
 // Create cookie with a new JWT auth token
 //
 pub fn generate_auth_cookie(email: &Email) -> Result<Cookie<'static>, GenerateTokenError> {
-	let token = generate_auth_token(email)?;
-	Ok(create_auth_cookie(token))
+	let token  = generate_auth_token(email)?;
+	let cookie = Cookie::build((JWT_COOKIE_NAME, token))
+		.path("/")                       // apply cookie to all URLs on the server
+		.http_only(true)                 // prevent JavaScript from accessing the cookie
+		.same_site(SameSite::Lax)        // send cookie with "same-site" requests, and with "cross-site" top-level navigations.
+		.build();
+	Ok(cookie)
 }
 
+// Commented this out because it's only used in one spot, so dont' see a need for
+// a separate function.
+/*
 // Create cookie and set the value to the passed-in token string
 //
 pub fn create_auth_cookie(token: String) -> Cookie<'static> {
@@ -25,26 +51,19 @@ pub fn create_auth_cookie(token: String) -> Cookie<'static> {
 		.build();
 	cookie
 }
-
-#[derive(Debug)]
-pub enum GenerateTokenError
-{
-	TokenError(Error),
-	UnexpectedError,
-}
+*/
 
 // Create JWT auth token
 pub fn generate_auth_token(email: &Email) -> Result<String, GenerateTokenError> {
-	let delta = chrono::Duration::try_seconds(TOKEN_TTL_SECONDS).ok_or(GenerateTokenError::UnexpectedError)?;
+	let delta = chrono::Duration::try_seconds(TOKEN_TTL_SECONDS)
+		.ok_or(GenerateTokenError::UnexpectedError)?;
 
-	// Create JWT expiration time
-	let exp = Utc::now()
+	let exp = Utc::now()                                    // Create JWT expiration time
 		.checked_add_signed(delta)
 		.ok_or(GenerateTokenError::UnexpectedError)?
 		.timestamp();
 
-	// Cast exp to ize, which is what Claims expects
-	let exp: usize = exp
+	let exp: usize = exp                                     // Cast exp to usize, (what Claims expects)
 		.try_into()
 		.map_err(|_| GenerateTokenError::UnexpectedError)?;
 
@@ -53,7 +72,7 @@ pub fn generate_auth_token(email: &Email) -> Result<String, GenerateTokenError> 
 	create_token(&claims).map_err(GenerateTokenError::TokenError)
 }
 
-// Check if JWT auth token is valid by decoding it using the JWT secret
+// Check if JWT auth-token is valid by decoding it using the JWT secret
 //
 pub async fn validate_token(
 	token:           &str,
@@ -61,7 +80,7 @@ pub async fn validate_token(
 	) -> Result<Claims, Error> {
 	println!("Validating token\n\t{:?}", token);
 
-	match banned_tokens.read().await.token_exists(token).await {
+	match banned_tokens.read().await.contains_token(token).await {
 		Ok(true) => {
 			println!("Token is banned: {:?}", token);
 			return Err(Error::from(ErrorKind::InvalidToken));
@@ -86,10 +105,4 @@ fn create_token(claims: &Claims) -> Result<String, jsonwebtoken::errors::Error> 
 		&claims,
 		&EncodingKey::from_secret(JWT_SECRET.as_bytes()),
 	)
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Claims {
-	pub sub: String,
-	pub exp: usize,
 }

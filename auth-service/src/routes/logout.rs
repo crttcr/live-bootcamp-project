@@ -27,8 +27,8 @@ pub async fn logout(
    // Add token to banned tokens store
    if state.banned_tokens
       .write().await
-      .add_token(token.to_owned())
-      .await.is_err() {
+      .add_token(token.to_owned()).await
+      .is_err() {
       return (jar, Err(AuthAPIError::UnexpectedError));
    }
    let count = state.banned_tokens.read().await.count().await.unwrap();

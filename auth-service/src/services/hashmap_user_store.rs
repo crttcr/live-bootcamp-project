@@ -5,12 +5,18 @@ use crate::domain::password::Password;
 use crate::domain::user::User;
 use std::collections::HashMap;
 
-
 #[derive(Default)]
 pub struct HashmapUserStore 
 {
     users: HashMap<Email, User>,
 }
+
+impl HashmapUserStore {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
 
 #[async_trait::async_trait]
 impl UserStore for HashmapUserStore {

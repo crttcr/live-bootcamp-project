@@ -19,9 +19,11 @@ async fn test_generate_auth_cookie() {
 	let email  = Email::parse("test@example.com".to_owned()).unwrap();
 	let cookie = generate_auth_cookie(&email).unwrap();
 	assert_basic_cookie_properties(&cookie);
-	assert_eq!(cookie.value().split('.').count(),                    3);
+	assert_eq!(cookie.value().split('.').count(), 3);
 }
 
+// Test commented out because this function was hoisted into generate_auth_cookie()
+/*
 #[tokio::test]
 async fn test_create_auth_cookie() {
 	let token  = "test_token".to_owned();
@@ -29,6 +31,7 @@ async fn test_create_auth_cookie() {
 	assert_basic_cookie_properties(&cookie);
 	assert_eq!(cookie.value(), token);
 }
+*/
 
 #[tokio::test]
 async fn test_generate_auth_token_result_has_3_parts() {

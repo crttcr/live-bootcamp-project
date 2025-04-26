@@ -7,13 +7,13 @@ use serde::{Deserialize, Serialize};
 use crate::app_state::AppState;
 
 #[derive(Deserialize, Debug, Serialize)]
-pub struct VerifyRequest {
+pub struct VerifyTokenRequest {
    pub token:          String,
 }
 
 pub async fn verify_token(
    State(state):   State<AppState>,
-   Json(request):  Json<VerifyRequest>,
+   Json(request):  Json<VerifyTokenRequest>,
 ) -> impl IntoResponse { 
    println!("Verify Request: {:?}", request);
 

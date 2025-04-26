@@ -12,16 +12,14 @@ fi
 
 # Read each line in the .env file (ignoring comments)
 while IFS= read -r line; do
-  # Skip blank lines and lines starting with #
-  if [[ -n "$line" ]] && [[ "$line" != \#* ]]; then
-    # Split the line into key and value
-    key=$(echo "$line" | cut -d '=' -f1)
-    value=$(echo "$line" | cut -d '=' -f2-)
-    # Export the variable
-    export "$key=$value"
+  if [[ -n "$line" ]] && [[ "$line" != \#* ]]; then   # Skip blank lines and lines starting with #
+    k=$(echo "$line" | cut -d '=' -f1)                # Split the line into key and value
+    v=$(echo "$line" | cut -d '=' -f2-)
+    export "$k=$v"                                    # Export the variable
   fi
 done < <(grep -v '^#' "$ENV_FILE")
 
 # Run docker-compose commands with exported variables
 docker-compose build
 docker-compose up
+

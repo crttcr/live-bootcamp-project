@@ -32,3 +32,4 @@ visit http://localhost:3000
 ```
 
 visit http://localhost:8000 and http://localhost:3000
+visit http://rivvit.io/app  and http://rivvit.io/auth

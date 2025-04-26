@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-use crate::domain::data_stores::UserStore;
+use crate::domain::UserStore;
 use crate::domain::TokenStore;
 
 type UserStoreTraitObject  = dyn UserStore  + Send + Sync;

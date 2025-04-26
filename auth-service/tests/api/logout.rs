@@ -22,7 +22,7 @@ async fn should_return_200_if_valid_jwt_cookie() {
     let token_store = app.banned_tokens.read().await;
     let count      = token_store.count().await.unwrap();
     println!("Banned Tokens({:?})", count);
-    let is_banned  = token_store.token_exists(&jwt_token).await.unwrap();
+    let is_banned  = token_store.contains_token(&jwt_token).await.unwrap();
     assert!(is_banned);
     assert_eq!(response.status(),  200);
 }

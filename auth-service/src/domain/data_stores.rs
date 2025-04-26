@@ -34,5 +34,5 @@ pub trait TokenStore
     async fn clear(&mut self)                       -> Result<(),   TokenStoreError>;
     async fn count(&self)                           -> Result<u64,  TokenStoreError>;
     async fn delete_token(&mut self, token: &str)   -> Result<(),   TokenStoreError>;
-    async fn token_exists(&self, token: &str)       -> Result<bool, TokenStoreError>;
+    async fn contains_token(&self, token: &str)     -> Result<bool, TokenStoreError>;
 }

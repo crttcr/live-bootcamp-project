@@ -10,12 +10,16 @@ pub enum PasswordError {
 pub struct Password(String);
 
 impl Password {
-    pub fn parse(password: &str) -> Result<Self, PasswordError> {
-        let _  = Password::is_valid(password)?;
-        let _  = Password::is_secure(password)?;
-        let rv = Password(password.to_owned());
-        Ok(rv)
-    }
+   pub fn new(hashed_password: String) -> Self {
+      Password(hashed_password)
+   }
+   
+   pub fn parse(password: &str) -> Result<Self, PasswordError> {
+      let _  = Password::is_valid(password)?;
+      let _  = Password::is_secure(password)?;
+      let rv = Password(password.to_owned());
+      Ok(rv)
+   }
 
     pub fn is_valid(password: &str) -> Result<(), PasswordError> {
         if password.is_empty()                         { return Err(PasswordError::BlankValue);      }

@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - x-releases
   workflow_dispatch:
 
 jobs:
