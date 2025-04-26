@@ -10,15 +10,19 @@ pub enum PasswordError {
 pub struct Password(String);
 
 impl Password {
-   pub fn new(hashed_password: String) -> Self {
-      Password(hashed_password)
-   }
-   
    pub fn parse(password: &str) -> Result<Self, PasswordError> {
-      let _  = Password::is_valid(password)?;
-      let _  = Password::is_secure(password)?;
+      let _  = Password::is_acceptable(password)?;
       let rv = Password(password.to_owned());
       Ok(rv)
+   }
+
+   // Allow simple passwords for development/testing. It's too tedious to type and remember
+   // secure passwords when the component is non-production
+   //
+   pub fn is_acceptable(password: &str) -> Result<(), PasswordError> {
+      if password.is_empty()                         { return Err(PasswordError::BlankValue);      }
+      if password.len() < 4                          { return Err(PasswordError::TooShort); }
+      Ok(())
    }
 
     pub fn is_valid(password: &str) -> Result<(), PasswordError> {

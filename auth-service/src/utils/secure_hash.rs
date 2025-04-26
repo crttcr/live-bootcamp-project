@@ -1,16 +1,12 @@
+
 use argon2::password_hash::{PasswordHash, PasswordVerifier};
 use argon2::password_hash::Salt;
 use argon2::{Argon2, PasswordHasher};
 use getrandom::getrandom;
 
-#[test]
-fn test_it() {
-	let password = "hunter42"; // Bad password; don't actually use!
-	let salt     = "example salt"; // Salt should be unique per password
-	main();
-}
 
-fn main() {
+#[allow(dead_code)]
+fn create_and_verify_password() {
 	let password = b"super_secret_password";
 
 	// 1. Generate a random 16-byte salt manually
@@ -33,12 +29,13 @@ fn main() {
 	println!("Password hash: {}", hashed_password);
 
 	// 5. Verify
-	let parsed_hash = PasswordHash::new(&hashed_password).expect("Failed to parse password hash");
-
-	assert!(
-		argon2.verify_password(password, &parsed_hash).is_ok(),
-		"Password verification failed"
-	);
-
+	let parsed_hash   = PasswordHash::new(&hashed_password).expect("Failed to parse password hash");
+	let verify_result = argon2.verify_password(password, &parsed_hash).is_ok();
+	assert!(verify_result, "Password verification failed");
 	println!("Password verified successfully!");
+}
+
+#[test]
+fn test_it() {
+	create_and_verify_password();
 }
