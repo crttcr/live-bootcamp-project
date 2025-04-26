@@ -61,8 +61,8 @@ async fn should_return_401_if_banned_token() {
         println!("token added");
     }
 
-    // Now that we have added the token to the banned tokens set, let's
-    // post to the verify token endpoint and ensure that we get a 401.
+    // Token has been added to the banned tokens set; post to the 
+    // verify token endpoint and ensure that we get a 401.
     //
     let body     = json!({"token": token});
     println!("created body {}", body);
