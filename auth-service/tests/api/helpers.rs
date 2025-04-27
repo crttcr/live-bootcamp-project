@@ -1,14 +1,13 @@
 use auth_service::app_state::{AppState, TokenStoreType};
 use auth_service::services::hashmap_user_store::HashmapUserStore;
+use auth_service::services::hashset_token_store::HashSetTokenStore;
+use auth_service::utils::constants::test;
 use auth_service::Application;
 use reqwest::cookie::Jar;
 use serde::Serialize;
 use std::sync::Arc;
-use reqwest::Body;
 use tokio::sync::RwLock;
 use uuid::Uuid;
-use auth_service::services::hashset_token_store::HashSetTokenStore;
-use auth_service::utils::constants::test;
 
 pub struct TestApp
 {
