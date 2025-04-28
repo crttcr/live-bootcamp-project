@@ -30,7 +30,7 @@ impl Password {
         if password.len() < 8                          { return Err(PasswordError::TooShort); }
         if !password.chars().any(|c| c.is_uppercase()) { return Err(PasswordError::Insecure); }
         if !password.chars().any(|c| c.is_lowercase()) { return Err(PasswordError::Insecure); }
-        if !password.chars().any(|c| c.is_digit(10)) { return Err(PasswordError::Insecure); }
+        if !password.chars().any(|c| c.is_digit(10))   { return Err(PasswordError::Insecure); }
         if !password.chars().any(|c| "!@#$%^&*()_+-=[]{}|;':\",.<>?/`~".contains(c)) {
             return Err(PasswordError::Insecure);
         }

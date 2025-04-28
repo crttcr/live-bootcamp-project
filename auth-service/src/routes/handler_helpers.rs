@@ -37,16 +37,17 @@ mod tests {
 	use crate::routes::LoginResponse::TwoFactorAuth;
 	use crate::routes::TwoFactorAuthResponse;
 	use axum::Json;
+	use crate::domain::LoginAttemptId;
 
 	#[test]
 	fn it_works() {
-		let status   = StatusCode::PARTIAL_CONTENT;
-		let cookies  = CookieJar::new();
-		let response = TwoFactorAuthResponse::default();
-		let response = TwoFactorAuth(response);
-		let body     = Json(response);
-		let response = WithCookies { status, cookies, body };
-
+		let status     = StatusCode::PARTIAL_CONTENT;
+		let cookies    = CookieJar::new();
+		let attempt_id = LoginAttemptId::new();
+		let response   = TwoFactorAuthResponse::new(attempt_id);
+		let response   = TwoFactorAuth(response);
+		let body       = Json(response);
+		let response   = WithCookies { status, cookies, body };
 		println!("{:?}", response.into_response());
 	}
 }

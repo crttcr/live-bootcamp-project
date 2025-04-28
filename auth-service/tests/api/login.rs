@@ -1,5 +1,6 @@
+use auth_service::domain::{Email, LoginAttemptId};
 use crate::helpers::{get_random_email, TestApp};
-use auth_service::routes::{LoginRequest, SignupRequest};
+use auth_service::routes::{LoginRequest, SignupRequest, TwoFactorAuthResponse};
 use auth_service::utils::constants::JWT_COOKIE_NAME;
 
 // NOTE: Malformed credentials: the framework failed to
@@ -102,7 +103,7 @@ async fn should_return_200_if_valid_credentials_and_2fa_disabled() {
 }
 
 #[tokio::test]
-async fn should_return_200_if_valid_credentials_and_2fa_enabled() {
+async fn should_return_206_if_valid_credentials_and_2fa_enabled() {
     let app          = TestApp::new().await;
     let random_email = get_random_email();
     let signup_body  = serde_json::json!({
@@ -122,4 +123,22 @@ async fn should_return_200_if_valid_credentials_and_2fa_enabled() {
 
     let response = app.post_login(&login_body).await;
     assert_eq!(response.status().as_u16(), 206);
+    
+    let json_body = response.json::<TwoFactorAuthResponse>()
+       .await.expect("Could not deserialize response body to TwoFactorAuthResponse");
+    println!("JSON body: {:?}", json_body);
+    
+    let login_attempt_id = LoginAttemptId::parse(json_body.login_attempt_id).unwrap();
+    let code_store       = app.two_fa_code_store.read().await;
+    let email_key        = Email::parse(random_email.clone()).unwrap();
+    let foo              = code_store.get_code(&email_key).await;
+    println!("Code store result: {:?}", foo);
+    match code_store.get_code(&email_key).await {
+        Ok(tuple) => {
+            assert_eq!(tuple.0, login_attempt_id);
+        },
+        Err(x) => {
+            panic!("Email [{}] not found in code store: {:?}", random_email, x);
+        }       
+    }
 }
