@@ -1,6 +1,8 @@
+use serde::{Deserialize, Serialize};
 use super::email::Email;
 use super::password::Password;
 use super::user::User;
+use std::fmt;
 
 
 #[derive(Debug, PartialEq, Copy, Clone)]
@@ -44,7 +46,7 @@ pub trait TokenStore
     async fn contains_token(&self, token: &str)     -> Result<bool, TokenStoreError>;
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct LoginAttemptId(String);
 
 impl LoginAttemptId {
@@ -71,7 +73,14 @@ impl AsRef<str> for LoginAttemptId {
     fn as_ref(&self) -> &str { &self.0 }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+impl fmt::Display for LoginAttemptId {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct TwoFACode(String);
 
 impl AsRef<str> for TwoFACode {
@@ -100,6 +109,11 @@ impl TwoFACode {
 
 impl Default for TwoFACode {
     fn default() -> Self { TwoFACode::new() }
+}
+impl fmt::Display for TwoFACode {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
 }
 
 // The interface that concrete 2FA stores should implement.

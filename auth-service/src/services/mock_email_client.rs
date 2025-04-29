@@ -11,7 +11,6 @@ impl MockEmailClient {
 #[async_trait::async_trait]
 impl EmailClient for MockEmailClient 
 {
-	
 	async fn send_email(
 		&self,
 		recipient:     &Email,

@@ -77,7 +77,7 @@ impl TestApp {
 		println!("Calling post_login");
 		println!("Body: {:?}", body);
 		let url = format!("{}/login", &self.address);
-		let rv = self.http_client
+		let rv  = self.http_client
 			.post(url)
 			.json(body)
 			.send()

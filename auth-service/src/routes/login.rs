@@ -43,7 +43,6 @@ impl TwoFactorAuthResponse {
     }
 }
 
-
 pub async fn login(
     State(state):   State<AppState>,
     jar:            CookieJar,
@@ -72,14 +71,14 @@ pub async fn login(
 //    let user        = store.get_user(&email).await.map_err(|_| AuthAPIError::InvalidCredentials);
 //
 
-    let store = state.user_store.read().await;
-    if store.validate_user(&email, &password).await.is_err() {
+    let user_store = state.user_store.read().await;
+    if user_store.validate_user(&email, &password).await.is_err() {
         println!("User validation failed");
         return (jar, Err(AuthAPIError::IncorrectCredentials));
     }
     println!("User with email {} authenticated.", &email);
 
-    let user = match store.get_user(&email).await {
+    let user = match user_store.get_user(&email).await {
         Ok(user) => user,
         Err(_) => return (jar, Err(AuthAPIError::IncorrectCredentials)),
     };
@@ -119,22 +118,40 @@ async fn handle_no_2fa(email: &Email, jar: CookieJar) ->
 async fn handle_2fa(email: &Email, state: &AppState, jar: CookieJar) ->
 (
     CookieJar,
-    Result<(StatusCode, Json<LoginResponse>), AuthAPIError >,
+    Result<(StatusCode, Json<LoginResponse>), AuthAPIError>,
 )
 {
-    let login_attempt_id = LoginAttemptId::new();
-    let code             = TwoFACode::new();
-    let mut store        = state.two_fa_code_store.write().await;
-    let _                = store.add_code(email.clone(), login_attempt_id.clone(), code).await;
-    let cookies          = jar;
-    let emailer          = state.email_client.read().await;
-    match emailer.send_email(email, "xub", "content").await {
-        Ok(_) => {},
-        Err(_) => return (cookies, Err(AuthAPIError::UnexpectedError)),
-    }
+    let store_result = write_2fa_details_into_code_store(state, email).await;
+    match store_result {
+        Err(_) => (jar, Err(AuthAPIError::UnexpectedError)),
+        Ok((id, code)) => {
+            let cookies    = jar;
+            let emailer    = state.email_client.write().await;
+            let subject    = "Login requires 2FA code";
+            let content    = format!("Code [{}], Login Attempt ID: {}\n", id, code);
+            match emailer.send_email(email, subject, content.as_ref()).await {
+                Ok(_) => {},
+                Err(_) => return (cookies, Err(AuthAPIError::UnexpectedError)),
+            }
 
-    let response         = TwoFactorAuthResponse::new(login_attempt_id);
-    let response         = TwoFactorAuth(response);
-    let body             = Json(response);
-    (cookies, Ok((StatusCode::PARTIAL_CONTENT, body)))
+            let response         = TwoFactorAuthResponse::new(id);
+            let response         = TwoFactorAuth(response);
+            let body             = Json(response);
+            (cookies, Ok((StatusCode::PARTIAL_CONTENT, body)))
+        },
+    }
+}
+
+// Helper function ensures that the write lock is dropped as soon as 
+// the update is complete.
+//
+async fn write_2fa_details_into_code_store(state: &AppState, email: &Email) -> Result<(LoginAttemptId, TwoFACode), AuthAPIError> {
+    let code             = TwoFACode::new();
+    let login_attempt_id = LoginAttemptId::new();
+    let mut store        = state.two_fa_code_store.write().await;
+    match store.add_code(email.clone(), login_attempt_id.clone(), code.clone()).await {
+        Ok(_)  => Ok((login_attempt_id, code)),
+        Err(_) => Err(AuthAPIError::UnexpectedError),
+
+    }
 }

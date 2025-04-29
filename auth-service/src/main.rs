@@ -11,12 +11,9 @@ use auth_service::services::mock_email_client::MockEmailClient;
 async fn main() {
     let e_build        = "Failed to build application";
     let e_run          = "Failed to run application";
-    let user_store     = HashmapUserStore::default();
-    let user_store     = Arc::new(RwLock::new(user_store));
-    let token_store    = HashSetTokenStore::new();
-    let banned_tokens  = Arc::new(RwLock::new(token_store));
-    let code_store     = HashmapTwoFACodeStore::new();
-    let code_store     = Arc::new(RwLock::new(code_store));
+    let user_store     = Arc::new(RwLock::new(HashmapUserStore::default()));
+    let banned_tokens  = Arc::new(RwLock::new(HashSetTokenStore::new()));
+    let code_store     = Arc::new(RwLock::new(HashmapTwoFACodeStore::new()));
     let email_client   = Arc::new(RwLock::new(MockEmailClient::new()));
     let app_state      = AppState::new(user_store, banned_tokens, code_store, email_client);
     let app            = Application::build(app_state, prod::APP_ADDRESS)

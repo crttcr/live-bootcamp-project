@@ -125,16 +125,15 @@ async fn should_return_206_if_valid_credentials_and_2fa_enabled() {
     assert_eq!(response.status().as_u16(), 206);
     
     let json_body = response.json::<TwoFactorAuthResponse>()
-       .await.expect("Could not deserialize response body to TwoFactorAuthResponse");
+       .await.expect("Could not deserialize the response body to TwoFactorAuthResponse");
     println!("JSON body: {:?}", json_body);
     
     let login_attempt_id = LoginAttemptId::parse(json_body.login_attempt_id).unwrap();
-    let code_store       = app.two_fa_code_store.read().await;
     let email_key        = Email::parse(random_email.clone()).unwrap();
-    let foo              = code_store.get_code(&email_key).await;
-    println!("Code store result: {:?}", foo);
+    let code_store       = app.two_fa_code_store.read().await;
     match code_store.get_code(&email_key).await {
         Ok(tuple) => {
+            println!("Code store result: {:?}", tuple);
             assert_eq!(tuple.0, login_attempt_id);
         },
         Err(x) => {
