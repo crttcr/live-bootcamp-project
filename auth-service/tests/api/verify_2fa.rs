@@ -3,7 +3,6 @@ use auth_service::domain::{Email, TwoFACode};
 use auth_service::routes::Verify2FARequest;
 use crate::helpers::TestApp;
 
-// Make sure to assert the auth cookie gets set
 #[tokio::test]
 async fn should_return_200_if_correct_code() {
     let app          = TestApp::new().await;
@@ -44,6 +43,45 @@ async fn should_return_200_if_correct_code() {
     assert_eq!(response.status().as_u16(), 200);
     assert_eq!(cookies, 1);   
     
+}
+
+#[tokio::test]
+async fn should_return_401_if_same_code_twice() {
+    let app          = TestApp::new().await;
+    let email_str    = "a@b.com";
+    let email        = Email::parse(email_str.to_string()).unwrap();
+    let passw_str    = "password123**Archive";
+
+    // Signup user
+    let signup_body  = json!({
+        "email":       email_str,
+        "password":    passw_str,
+        "requires2FA": true
+    });
+    let _ = app.post_signup(&signup_body).await;
+
+    // Attempt login
+    let login_body  = json!({
+        "email":       email_str,
+        "password":    passw_str,
+    });
+    let response             = app.post_login(&login_body).await;
+    let response_json: Value = response.json().await.unwrap();
+    let logon_attempt_id     = response_json.get("loginAttemptId").unwrap().as_str().unwrap();
+    let code                 = get_code_from_2fa_store(&app, &email).await.unwrap();
+
+    // Verify the code
+    let body = json!({
+       "email":          email_str,
+       "loginAttemptId": logon_attempt_id,
+       "2FACode":        code
+    });
+
+    // Attempt to verify twice. This should fail as the code is already used.
+    //
+    let _          = app.post_verify_2fa(&body).await;
+    let response   = app.post_verify_2fa(&body).await;
+    assert_eq!(response.status().as_u16(), 401);
 }
 
 #[tokio::test]
@@ -148,4 +186,3 @@ async fn get_code_from_2fa_store(app: &TestApp, email: &Email) -> Option<TwoFACo
     println!("Got the code: {:?}", code);
     Some(code)
 }
-

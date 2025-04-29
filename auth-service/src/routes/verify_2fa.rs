@@ -39,7 +39,13 @@ pub async fn verify_2fa(
    // Verify the user's post contains the information we have in the store.
    if tuple.0 != login_attempt_id { return Err(AuthAPIError::IncorrectCredentials); }
    if tuple.1 != two_fa_code      { return Err(AuthAPIError::IncorrectCredentials); }
-   
+
+   // Verified.
+   // * Remove the entry from the store
+   // * Generate a new auth cookie
+   // * Return success result
+   //
+   remove_entry_from_store(&state, &email).await?;
    let auth_cookie = match generate_auth_cookie(&email) {
       Ok(cookie) => cookie,
       Err(_)     => return Err(AuthAPIError::UnexpectedError),
@@ -58,5 +64,15 @@ async fn get_tuple_from_store(
 {
    let two_fa_code_store = state.two_fa_code_store.read().await;
    let raw               = two_fa_code_store.get_code(email).await;
+   raw.map_err(|_| AuthAPIError::IncorrectCredentials)
+}
+
+async fn remove_entry_from_store(
+   state: &AppState,
+   email: &Email,
+) -> Result<(), AuthAPIError>
+{
+   let mut two_fa_code_store = state.two_fa_code_store.write().await;
+   let raw                   = two_fa_code_store.remove_code(email).await;
    raw.map_err(|_| AuthAPIError::IncorrectCredentials)
 }
