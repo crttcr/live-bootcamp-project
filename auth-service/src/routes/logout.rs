@@ -34,9 +34,9 @@ pub async fn logout(
    let count = state.banned_tokens.read().await.count().await.unwrap();
    println!("Banned Count: {}", count);
    
-   // Remove token from cookie jar and return modified jar
-   let cookie = cookie::Cookie::from(JWT_COOKIE_NAME);
-   let jar    = jar.remove(cookie);
-   println!("Cookie removed from jar. {}.", jar.iter().count());
-   Ok((jar, StatusCode::OK))
+   // Remove cookie and return modified jar
+   let cookie_for_removal = cookie::Cookie::build(JWT_COOKIE_NAME).path("/").build();
+   let updated_jar        = jar.remove(cookie_for_removal);
+   println!("Cookie removed from jar. {}.", updated_jar.iter().count());
+   Ok((updated_jar, StatusCode::OK))
 }

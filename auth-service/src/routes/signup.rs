@@ -31,14 +31,14 @@ pub async fn signup(
     let email    = Email::parse(    request.email   ).map_err(|_| AuthAPIError::InvalidCredentials)?;
     let password = Password::parse(&request.password).map_err(|_| AuthAPIError::InvalidCredentials)?;
     
-    let mut store = state.user_store.write().await;
-    if store.get_user(&email).await.is_ok() { 
+    let mut user_store = state.user_store.write().await;
+    if user_store.get_user(&email).await.is_ok() { 
         println!("User with email {} already exists.", &email);
         return Err(AuthAPIError::UserAlreadyExists) 
     }
 
     let user      = User::new(email, password, request.requires_2fa);
-    let result    = store.add_user(user).await;
+    let result    = user_store.add_user(user).await;
     match result {
         Ok(_) => {
             println!("User added successfully");

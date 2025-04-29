@@ -4,6 +4,7 @@ pub mod signup;
 pub mod verify_2fa;
 pub mod verify_token;
 pub mod logout;
+mod handler_helpers;
 
 pub use login::*;
 // Re-export items from sub-modules
