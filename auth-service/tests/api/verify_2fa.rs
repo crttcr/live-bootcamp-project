@@ -88,7 +88,7 @@ async fn should_return_401_if_incorrect_credentials() {
 }
 
 #[tokio::test]
-async fn should_return_401_if_valid_object_input() {
+async fn should_return_401_if_old_code() {
     let app          = TestApp::new().await;
     let email_str    = "a@b.com";
     let email        = Email::parse(email_str.to_string()).unwrap();
@@ -135,50 +135,11 @@ async fn should_return_401_if_valid_object_input() {
     assert_eq!(response.status().as_u16(), 401);    
 }
         
-#[tokio::test]
-async fn should_return_401_if_old_code() {
-    let app          = TestApp::new().await;
-    let email_str    = "a@b.com";
-    let email        = Email::parse(email_str.to_string()).unwrap();
-    let passw_str    = "password123**Archive";
-    let signup_body  = json!({
-        "email":       email_str,
-        "password":    passw_str,
-        "requires2FA": true
-    });
-    let response = app.post_signup(&signup_body).await;
-    assert_eq!(response.status().as_u16(), 201);
-    let login_body  = json!({
-        "email":       email_str,
-        "password":    passw_str
-    });
-    let response = app.post_login(&login_body).await;
-    println!("{:?}", response);
-    assert_eq!(response.status().as_u16(), 206);
-    println!("Got the right status. {:?}", response.status());
-    let code = get_code_from_2fa_store(&app, &email).await.unwrap();
-    println!("Got the code: {:?}", code);
-
-    // Login attempt again ...
-    let response = app.post_login(&login_body).await;
-    let response_json: Value = response.json().await.unwrap();
-    let lai                  = response_json.get("loginAttemptId").unwrap().as_str().unwrap();
-    println!("Got the lai : {:?}", lai);
-    let body = json!({
-        "email":          email_str,
-        "loginAttemptId": lai,
-        "2FACode":        code
-    });
-    let response = app.post_verify_2fa(&body).await;
-    println!("Verify response when passing in expired code:  {:?}", response.status());
-    assert_eq!(response.status().as_u16(), 401);
-}
-
 //
 // Helper functions
 //
 
-// This helper function ensures that our read lock is dropped as soon as we've completed the read
+// This function ensures that our read lock is dropped as soon as we've completed the read
 //
 async fn get_code_from_2fa_store(app: &TestApp, email: &Email) -> Option<TwoFACode> {
     let code_store  = app.two_fa_code_store.read().await;
