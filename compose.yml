@@ -1,7 +1,7 @@
 services:
   app-service:
     image: crtxtcr/app-service                       # specify name of image on Docker Hub
-    restart: "always"                                # automatically restart container when server crashes
+    restart: "always"                                # auto restart container on crash
     environment:                                     # set up environment variables
       AUTH_SERVICE_IP: ${AUTH_SERVICE_IP:-localhost} # Use localhost as the default value
     ports:
@@ -12,9 +12,24 @@ services:
 
   auth-service:
     image:   crtxtcr/auth-service
-    restart: "always"                   # automatically restart container when server crashes
+    restart: "always"                   # auto restart container on crash
     environment:
         JWT_SECRET: ${JWT_SECRET}
+        DATABASE_URL: "postgres://postgres:${POSTGRES_PASSWORD}@db:5444"
     ports:
-      - "3000:3000"                     # expose port 3000 so that applications outside the container can connect to it 
+      - "3000:3000"                     # expose :3000 so apps outside container can connect to it
+
+  db:
+    image:   postgres:15.2-alpine
+    restart: "always"                   # auto restart container on crash
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      ports:
+        - 5444:5432
+      volumes:
+        - db:/var/lib/postresql/data
+
+volumes:
+  db:
+    driver: local
 
