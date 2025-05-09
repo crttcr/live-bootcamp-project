@@ -7,6 +7,8 @@ use axum::http::Method;
 use axum::routing::post;
 use axum::serve::Serve;
 use axum::Router;
+use sqlx::PgPool;
+use sqlx::postgres::PgPoolOptions;
 use tower_http::cors::CorsLayer;
 use tower_http::services::ServeDir;
 
@@ -61,4 +63,10 @@ impl Application {
         println!("listening on {}", &self.address);
         self.server.await
     }
+}
+
+// Create PostgreSQL connection pool
+//
+pub async fn create_postgres_pool(url: &str) -> Result<PgPool, sqlx::Error> {
+    PgPoolOptions::new().max_connections(3).connect(url).await
 }

@@ -1,5 +1,5 @@
 
-use crate::helpers::TestApp;
+use crate::helpers_harness::TestApp;
 
 #[tokio::test]
 pub async fn root_returns_auth_ui()

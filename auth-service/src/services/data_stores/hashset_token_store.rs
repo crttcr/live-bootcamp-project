@@ -33,8 +33,7 @@ impl TokenStore for HashSetTokenStore {
 		else                { self.tokens.remove(token); Ok(()) }
 	}
 	
-	async fn contains_token(&self, token: &str) -> Result<bool, TokenStoreError> {
-		if token.is_empty() { Err(BlankToken)                  }
-		else                { Ok(self.tokens.contains(token)) }
+	async fn contains_token(&self, token: &str) -> bool {
+		self.tokens.contains(token)
 	}
 }

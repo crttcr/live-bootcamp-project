@@ -1,6 +1,6 @@
 use crate::domain::{TokenStore};
 use crate::domain::TokenStoreError::BlankToken;
-use crate::services::hashset_token_store::HashSetTokenStore;
+use crate::services::data_stores::hashset_token_store::HashSetTokenStore;
 use fake::{Fake, faker::internet::en::Password};
 
 #[tokio::test]

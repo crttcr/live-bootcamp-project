@@ -1,7 +1,40 @@
-use auth_service::domain::{Email, LoginAttemptId};
-use crate::helpers::{get_random_email, TestApp};
+use crate::helpers_arrange::{get_2fa_code_tuple, setup_registered_user, TestUser};
+use crate::helpers_assert::{assert_has_auth_cookie, assert_status};
+use crate::helpers_harness::TestApp;
 use auth_service::routes::{LoginRequest, SignupRequest, TwoFactorAuthResponse};
-use auth_service::utils::constants::JWT_COOKIE_NAME;
+
+
+#[tokio::test]
+async fn should_return_200_if_valid_credentials_and_2fa_disabled() {
+    let app          = TestApp::new().await;
+    let user         = TestUser::new();
+    setup_registered_user(&app, &user).await;
+
+    let response = app.post_login(&user.login_payload()).await;
+    assert_status(&response, 200, None);
+    assert_has_auth_cookie(&response);
+}
+
+#[tokio::test]
+async fn should_return_206_if_valid_credentials_and_2fa_enabled() {
+    let app          = TestApp::new().await;
+    let user         = TestUser::new_with_2fa();
+    setup_registered_user(&app, &user).await;
+
+    let response  = app.post_login(&user.login_payload()).await;
+    assert_status(&response, 206, None);
+
+    let json_body = response
+       .json::<TwoFactorAuthResponse>()
+       .await
+       .expect("Could not deserialize response body to TwoFactorAuthResponse");
+    assert_eq!(json_body.message, "2FA required".to_owned());
+    println!("JSON body: {:?}", json_body);
+
+    // Verify 2FA code was generated and matches the login attempt ID
+    let (login_attempt_id, _) = get_2fa_code_tuple(&app, &user.email).await;
+    assert_eq!(login_attempt_id, json_body.login_attempt_id);
+}
 
 // NOTE: Malformed credentials: the framework failed to
 // convert the request body into a JSON object containing both
@@ -33,6 +66,17 @@ pub async fn should_return_422_if_malformed_json_credentials()
 }
 
 #[tokio::test]
+pub async fn should_return_401_if_email_not_registered()
+{
+    let app      = TestApp::new().await;
+    let user     = TestUser::new();
+    let body     = serde_json::json!({"email": "unregistered@example.com", "password": user.password});
+    setup_registered_user(&app, &user).await;
+    let response = app.post_login(&body).await;
+    assert_status(&response, 401, None);
+}
+
+#[tokio::test]
 pub async fn should_return_401_if_user_does_not_exist()
 {
     let app      = TestApp::new().await;
@@ -41,6 +85,17 @@ pub async fn should_return_401_if_user_does_not_exist()
     let body     = LoginRequest{email, password};
     let response = app.post_login(&body).await;
     assert_eq!(response.status().as_u16(), 401);
+}
+
+#[tokio::test]
+pub async fn should_return_401_if_password_is_wrong()
+{
+    let app      = TestApp::new().await;
+    let user     = TestUser::new();
+    let body     = serde_json::json!({"email":user.email, "password":"wrong_password"});
+    setup_registered_user(&app, &user).await;
+    let response = app.post_login(&body).await;
+    assert_status(&response, 401, None);    
 }
 
 #[tokio::test]
@@ -68,76 +123,4 @@ pub async fn should_return_200_after_successful_signup()
     let body     = LoginRequest{email, password};
     let response = app.post_login(&body).await;
     assert_eq!(response.status().as_u16(), 200);
-}
-
-
-#[tokio::test]
-async fn should_return_200_if_valid_credentials_and_2fa_disabled() {
-    let app          = TestApp::new().await;
-    let random_email = get_random_email();
-    let signup_body  = serde_json::json!({
-        "email": random_email,
-        "password": "password123**Archive",
-        "requires2FA": false
-    });
-
-    let response = app.post_signup(&signup_body).await;
-
-    println!("Signup response {} .", response.status());
-    assert_eq!(response.status().as_u16(), 201);
-
-    let login_body = serde_json::json!({
-        "email": random_email,
-        "password":"password123**Archive",
-    });
-
-    let response = app.post_login(&login_body).await;
-    assert_eq!(response.status().as_u16(), 200);
-
-    let auth_cookie = response
-        .cookies()
-        .find(|cookie| cookie.name() == JWT_COOKIE_NAME)
-        .expect("No auth cookie found");
-    println!("Auth cookie: {}", auth_cookie.value());
-    assert!(!auth_cookie.value().is_empty());
-}
-
-#[tokio::test]
-async fn should_return_206_if_valid_credentials_and_2fa_enabled() {
-    let app          = TestApp::new().await;
-    let random_email = get_random_email();
-    let signup_body  = serde_json::json!({
-        "email":       random_email,
-        "password":    "password123**Archive",
-        "requires2FA": true
-    });
-
-    let response = app.post_signup(&signup_body).await;
-    println!("Signup response {} .", response.status());
-    assert_eq!(response.status().as_u16(), 201);
-
-    let login_body = serde_json::json!({
-        "email":     random_email,
-        "password":  "password123**Archive",
-    });
-
-    let response = app.post_login(&login_body).await;
-    assert_eq!(response.status().as_u16(), 206);
-    
-    let json_body = response.json::<TwoFactorAuthResponse>()
-       .await.expect("Could not deserialize the response body to TwoFactorAuthResponse");
-    println!("JSON body: {:?}", json_body);
-    
-    let login_attempt_id = LoginAttemptId::parse(json_body.login_attempt_id).unwrap();
-    let email_key        = Email::parse(random_email.clone()).unwrap();
-    let code_store       = app.two_fa_code_store.read().await;
-    match code_store.get_code(&email_key).await {
-        Ok(tuple) => {
-            println!("Code store result: {:?}", tuple);
-            assert_eq!(tuple.0, login_attempt_id);
-        },
-        Err(x) => {
-            panic!("Email [{}] not found in code store: {:?}", random_email, x);
-        }       
-    }
 }

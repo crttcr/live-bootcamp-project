@@ -1,87 +1,54 @@
-use serde_json::{json, Value};
-use auth_service::domain::{Email, TwoFACode};
+use serde_json::json;
 use auth_service::routes::Verify2FARequest;
-use crate::helpers::TestApp;
+use crate::helpers_arrange::*;
+use crate::helpers_assert::*;
+use crate::helpers_harness::TestApp;
+
 
 #[tokio::test]
 async fn should_return_200_if_correct_code() {
-    let app          = TestApp::new().await;
-    let email_str    = "a@b.com";
-    let email        = Email::parse(email_str.to_string()).unwrap();
-    let passw_str    = "password123**Archive";
-    
-    // Signup user
-    let signup_body  = json!({
-        "email":       email_str,
-        "password":    passw_str,
-        "requires2FA": true
-    });
-    let response = app.post_signup(&signup_body).await;
-    assert_eq!(response.status().as_u16(), 201);
+    // Arrange
+    let app                 = TestApp::new().await;
+    let (user, two_fa_data) = setup_2fa_login_started(&app).await;
+    let payload             = create_2fa_payload(&user.email, &two_fa_data);
 
-    // Attempt login
-    let login_body  = json!({
-        "email":       email_str,
-        "password":    passw_str,
-    });
-    let response = app.post_login(&login_body).await;
-    assert_eq!(response.status().as_u16(), 206);
+    // Act
+    let response            = app.post_verify_2fa(&payload).await; 
+    
+    // Assert
+    assert_status(&response, 200, None);
+    assert_has_auth_cookie(&response);
+}
 
-    let response_json: Value = response.json().await.unwrap();
-    let logon_attempt_id     = response_json.get("loginAttemptId").unwrap().as_str().unwrap();
-    let code                 = get_code_from_2fa_store(&app, &email).await.unwrap();
+#[tokio::test]
+async fn should_return_401_if_old_code() {
+    let app                 = TestApp::new().await;
+    let (user, two_fa_data) = setup_2fa_login_started(&app).await;
+    let payload             = create_2fa_payload(&user.email, &two_fa_data);
+
+    // Act
+    app.post_login(&user.login_payload()).await;         // Second login call (invalidates the first login attempt)
+    let response = app.post_verify_2fa(&payload).await;  // Verify with old id and code
     
-    // Verify the code
-    let body = json!({
-       "email":          email_str,
-       "loginAttemptId": logon_attempt_id,
-       "2FACode":        code
-    });
-    let response   = app.post_verify_2fa(&body).await;
-    let cookies    = response.cookies().count();
-    println!("Verify response when passing in expired code: {:?}", response.status());
-    assert_eq!(response.status().as_u16(), 200);
-    assert_eq!(cookies, 1);   
-    
+    // Assert
+    assert_status(&response, 401, None);
 }
 
 #[tokio::test]
 async fn should_return_401_if_same_code_twice() {
-    let app          = TestApp::new().await;
-    let email_str    = "a@b.com";
-    let email        = Email::parse(email_str.to_string()).unwrap();
-    let passw_str    = "password123**Archive";
+    // Arrange
+    let app                 = TestApp::new().await;
+    let (user, two_fa_data) = setup_2fa_login_started(&app).await;
+    let request_body        = create_2fa_payload(&user.email, &two_fa_data);
 
-    // Signup user
-    let signup_body  = json!({
-        "email":       email_str,
-        "password":    passw_str,
-        "requires2FA": true
-    });
-    let _ = app.post_signup(&signup_body).await;
+    // Act
+    let first_response  = app.post_verify_2fa(&request_body).await;
+    let second_response = app.post_verify_2fa(&request_body).await;
 
-    // Attempt login
-    let login_body  = json!({
-        "email":       email_str,
-        "password":    passw_str,
-    });
-    let response             = app.post_login(&login_body).await;
-    let response_json: Value = response.json().await.unwrap();
-    let logon_attempt_id     = response_json.get("loginAttemptId").unwrap().as_str().unwrap();
-    let code                 = get_code_from_2fa_store(&app, &email).await.unwrap();
-
-    // Verify the code
-    let body = json!({
-       "email":          email_str,
-       "loginAttemptId": logon_attempt_id,
-       "2FACode":        code
-    });
-
-    // Attempt to verify twice. This should fail as the code is already used.
-    //
-    let _          = app.post_verify_2fa(&body).await;
-    let response   = app.post_verify_2fa(&body).await;
-    assert_eq!(response.status().as_u16(), 401);
+    // Assert
+    assert_status(&first_response, 200, None);
+    assert_has_auth_cookie(&first_response);
+    assert_status(&second_response, 401, None);
 }
 
 #[tokio::test]
@@ -89,7 +56,7 @@ async fn should_return_422_if_malformed_input() {
     let app      = TestApp::new().await;
     let body     = json!(r#"{"code": "123456"}"#);
     let response = app.post_verify_2fa(&body).await;
-    assert_eq!(response.status().as_u16(), 422);
+    assert_status(&response, 422, None);
 }
 
 #[tokio::test]
@@ -97,7 +64,7 @@ async fn should_return_400_if_invalid_object_input() {
     let app      = TestApp::new().await;
     let body     = Verify2FARequest{ email: "not_an_email".to_string(), login_attempt_id: "466b32c2-6862-4c18-ada0-7d59eaf6e004".to_string(), code: "123456".to_string()};
     let response = app.post_verify_2fa(&body).await;
-    assert_eq!(response.status().as_u16(), 400);
+    assert_status(&response, 400, None);
 }
 
 #[tokio::test]
@@ -125,64 +92,3 @@ async fn should_return_401_if_incorrect_credentials() {
     assert_eq!(response.status().as_u16(), 401);
 }
 
-#[tokio::test]
-async fn should_return_401_if_old_code() {
-    let app          = TestApp::new().await;
-    let email_str    = "a@b.com";
-    let email        = Email::parse(email_str.to_string()).unwrap();
-    let passw_str    = "password123**Archive";
-    
-    // Signup user
-    let signup_body  = json!({
-        "email":       email_str,
-        "password":    passw_str,
-        "requires2FA": true
-    });
-    let response = app.post_signup(&signup_body).await;
-    assert_eq!(response.status().as_u16(), 201);
-    
-    // First login attempt
-    let login_body  = json!({
-        "email":       "a@b.com",
-        "password":    "password123**Archive",
-    });
-    let response = app.post_login(&login_body).await;
-    assert_eq!(response.status().as_u16(), 206);
-    
-    // Get the code from the 2FA store
-    let code = get_code_from_2fa_store(&app, &email).await.unwrap();
-    
-    // Second login attempt
-    let login_body  = json!({
-        "email":       "a@b.com",
-        "password":    "password123**Archive",
-    });
-    let response             = app.post_login(&login_body).await;
-    let response_json: Value = response.json().await.unwrap();
-    let logon_attempt_id     = response_json.get("loginAttemptId").unwrap().as_str().unwrap();
-    println!("Got the logon_attempt_id : {:?}", logon_attempt_id);
-    
-    // Attempt to verify the code from the first login attempt
-    let body = json!({
-       "email":          email_str,
-       "loginAttemptId": logon_attempt_id,
-       "2FACode":        code
-    });
-    let response = app.post_verify_2fa(&body).await;
-    println!("Verify response when passing in expired code:  {:?}", response.status());
-    assert_eq!(response.status().as_u16(), 401);    
-}
-        
-//
-// Helper functions
-//
-
-// This function ensures that our read lock is dropped as soon as we've completed the read
-//
-async fn get_code_from_2fa_store(app: &TestApp, email: &Email) -> Option<TwoFACode> {
-    let code_store  = app.two_fa_code_store.read().await;
-    let entry       = code_store.get_code(&email).await.unwrap();
-    let code        = entry.1;
-    println!("Got the code: {:?}", code);
-    Some(code)
-}

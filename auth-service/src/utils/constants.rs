@@ -18,7 +18,27 @@ pub mod test {
 }
 
 lazy_static! {
-	pub static ref JWT_SECRET: String = set_token();
+	pub static ref JWT_SECRET:        String = set_token();
+	pub static ref POSTGRES_PASSWORD: String = set_pg_password();
+	pub static ref DATABASE_URL:      String = set_db_url();
+}
+
+fn set_db_url() -> String {
+	let password = set_pg_password();
+	let url      = format!("postgres://postgres:{}@localhost:5444", password);
+	url
+}
+
+fn set_pg_password() -> String {
+	dotenv().ok();
+	let secret = std_env::var("POSTGRES_PASSWORD").expect("POSTGRES_PASSWORD not set");
+	if secret.is_empty() {
+		panic!("POSTGRES_PASSWORD must not be empty. Set it in the .env file or in environment variables.");
+	}
+	if secret.len() < 8 {
+		eprintln!("POSTGRES_PASSWORD is too short. It should be at least 8 characters long.")
+	}
+	secret
 }
 
 fn set_token() -> String {
