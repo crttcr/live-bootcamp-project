@@ -10,35 +10,12 @@ pub const TOKEN_TTL_SECONDS:       i64  = 600; // 10 minutes
 
 lazy_static! {
 	pub static ref JWT_SECRET:        String = set_token();
-	pub static ref POSTGRES_PASSWORD: String = set_pg_password();
+//	pub static ref POSTGRES_PASSWORD: String = set_pg_password();
 	pub static ref DATABASE_URL:      String = set_db_url();
 	pub static ref REDIS_HOST_NAME:   String = set_redis_host();
 }
 
-pub mod prod {
-	pub const APP_ADDRESS:   &str = "0.0.0.0:3000";
-	pub const URI_APP:       &str = "https://161.35.106.43:8000";
-	pub const URI_AUTH:      &str = "https://161.35.106.43:3000";
-}
-
-pub mod test {
-	pub const APP_ADDRESS:   &str = "127.0.0.1:0";
-	pub const URI_APP:       &str = "https://localhost:8000";
-	pub const URI_AUTH:      &str = "https://localhost:3000";
-}
-
-fn set_db_url() -> String {
-	let password = set_pg_password();
-	let url      = format!("postgres://postgres:{}@localhost:5432", password);
-	url
-}
-
-fn set_redis_host() -> String {
-	dotenv().ok();
-	let envar_name = env::REDIS_HOST_NAME_ENV_VAR;
-	std_env::var(envar_name).unwrap_or(DEFAULT_REDIS_HOSTNAME.to_owned())
-}
-
+/*
 fn set_pg_password() -> String {
 	dotenv().ok();
 	let secret = std_env::var("POSTGRES_PASSWORD").expect("POSTGRES_PASSWORD not set");
@@ -50,6 +27,7 @@ fn set_pg_password() -> String {
 	}
 	secret
 }
+*/
 
 fn set_token() -> String {
 	dotenv().ok();
@@ -63,8 +41,33 @@ fn set_token() -> String {
 	secret
 }
 
+fn set_db_url() -> String {
+//	let password = set_pg_password();
+//	let url      = format!("postgres://postgres:{}@localhost:5432", password);
+	let url      = std_env::var("DATABASE_URL").expect("DATABASE_URL not set");
+	url
+}
+
+fn set_redis_host() -> String {
+	dotenv().ok();
+	let envar_name = env::REDIS_HOST_NAME_ENV_VAR;
+	std_env::var(envar_name).unwrap_or(DEFAULT_REDIS_HOSTNAME.to_owned())
+}
+
 pub mod env {
 	pub const DATABASE_URL_ENV_VAR:    &str = "DATABASE_URL";
 	pub const JWT_SECRENT_ENV_VAR:     &str = "JWT_SECRET";
 	pub const REDIS_HOST_NAME_ENV_VAR: &str = "REDIS_HOST_NAME";
+}
+
+pub mod prod {
+	pub const APP_ADDRESS:   &str = "0.0.0.0:3000";
+	pub const URI_APP:       &str = "https://161.35.106.43:8000";
+	pub const URI_AUTH:      &str = "https://161.35.106.43:3000";
+}
+
+pub mod test {
+	pub const APP_ADDRESS:   &str = "127.0.0.1:0";
+	pub const URI_APP:       &str = "https://localhost:8000";
+	pub const URI_AUTH:      &str = "https://localhost:3000";
 }
