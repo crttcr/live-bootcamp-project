@@ -42,9 +42,9 @@ fn set_token() -> String {
 }
 
 fn set_db_url() -> String {
-//	let password = set_pg_password();
-//	let url      = format!("postgres://postgres:{}@localhost:5432", password);
-	let url      = std_env::var("DATABASE_URL").expect("DATABASE_URL not set");
+	dotenv().ok();
+	println!("CWD: {:?}", std::env::current_dir());	
+	let url = std_env::var(env::DATABASE_URL_ENV_VAR).expect("DATABASE_URL not set");
 	url
 }
 

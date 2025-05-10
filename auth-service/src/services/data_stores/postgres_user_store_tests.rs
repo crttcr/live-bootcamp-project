@@ -55,7 +55,7 @@ async fn add_user_fails_when_email_already_exists() {
 	let password       = Password::parse("ArcBinCanDoe594***").unwrap();
 	let user           = User::new(email, password, true);
 	let url            = DATABASE_URL.to_owned();
-	println!("{:?}", url);
+	println!("Postgres url: {:?}", url);
 	let pg_pool        = create_postgres_pool(&url).await.unwrap();
 	let mut user_store = PostgresUserStore::new(pg_pool);
 	let result         = user_store.add_user(user).await;
