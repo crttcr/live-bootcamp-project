@@ -11,3 +11,15 @@
 .env-stage
 .env-prod
 
+app-service/.env
+app-service/.env-dev
+app-service/.env-test
+app-service/.env-stage
+app-service/.env-prod
+
+auth-service/.env
+auth-service/.env-dev
+auth-service/.env-test
+auth-service/.env-stage
+auth-service/.env-prod
+
