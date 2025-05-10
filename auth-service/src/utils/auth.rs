@@ -29,7 +29,7 @@ pub enum GenerateTokenError
 // Create cookie with a new JWT auth token
 //
 pub fn generate_auth_cookie(email: &Email) -> Result<Cookie<'static>, GenerateTokenError> {
-	let token  = generate_auth_token(email)?;
+	let token  = generate_jwt_auth_token(email)?;
 	let cookie = Cookie::build((JWT_COOKIE_NAME, token))
 		.path("/")                       // apply cookie to all URLs on the server
 		.http_only(true)                 // prevent JavaScript from accessing the cookie
@@ -38,23 +38,7 @@ pub fn generate_auth_cookie(email: &Email) -> Result<Cookie<'static>, GenerateTo
 	Ok(cookie)
 }
 
-// Commented this out because it's only used in one spot, so dont' see a need for
-// a separate function.
-/*
-// Create cookie and set the value to the passed-in token string
-//
-pub fn create_auth_cookie(token: String) -> Cookie<'static> {
-	let cookie = Cookie::build((JWT_COOKIE_NAME, token))
-		.path("/")                       // apply cookie to all URLs on the server
-		.http_only(true)                 // prevent JavaScript from accessing the cookie
-		.same_site(SameSite::Lax)        // send cookie with "same-site" requests, and with "cross-site" top-level navigations.
-		.build();
-	cookie
-}
-*/
-
-// Create JWT auth token
-pub fn generate_auth_token(email: &Email) -> Result<String, GenerateTokenError> {
+pub fn generate_jwt_auth_token(email: &Email) -> Result<String, GenerateTokenError> {
 	let delta = chrono::Duration::try_seconds(TOKEN_TTL_SECONDS)
 		.ok_or(GenerateTokenError::UnexpectedError)?;
 

@@ -36,14 +36,14 @@ async fn test_create_auth_cookie() {
 #[tokio::test]
 async fn test_generate_auth_token_result_has_3_parts() {
 	let email  = Email::parse("test@example.com".to_owned()).unwrap();
-	let result = generate_auth_token(&email).unwrap();
+	let result = generate_jwt_auth_token(&email).unwrap();
 	assert_eq!(result.split('.').count(), 3);
 }
 
 #[tokio::test]
 async fn test_valid_token_passes_validation() {
 	let email         = Email::parse("a@b.com".to_owned()).unwrap();
-	let token         = generate_auth_token(&email).unwrap();
+	let token         = generate_jwt_auth_token(&email).unwrap();
 	let banned_tokens =  Arc::new(RwLock::new(HashSetTokenStore::new()));
 	let result        = validate_token(token.as_str(), banned_tokens).await.unwrap();
 	assert_eq!(result.sub, "a@b.com");

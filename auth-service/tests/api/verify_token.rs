@@ -1,7 +1,7 @@
 use serde_json::json;
 use crate::helpers_harness::TestApp;
 use auth_service::domain::Email;
-use auth_service::utils::auth::generate_auth_token;
+use auth_service::utils::auth::generate_jwt_auth_token;
 use crate::helpers_arrange::setup_logged_in_user;
 use crate::helpers_assert::assert_status;
 use crate::helpers_harness::{get_random_email};
@@ -69,7 +69,7 @@ async fn should_return_401_if_banned_token_crt() {
     let mut app      = TestApp::new().await;
     let email    = get_random_email();
     let email    = Email::parse(email).unwrap();
-    let token    = generate_auth_token(&email).unwrap();
+    let token    = generate_jwt_auth_token(&email).unwrap();
     println!("token: {}", token);
 
     // Now that we have a token, before we post it, let's add it to the
