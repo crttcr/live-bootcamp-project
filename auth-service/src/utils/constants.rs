@@ -2,8 +2,18 @@ use dotenvy::dotenv;
 use lazy_static::lazy_static;
 use std::env as std_env;
 
-pub const JWT_COOKIE_NAME:   &str = "jwt";
-pub const TOKEN_TTL_SECONDS: i64  = 600; // 10 minutes
+pub const DEFAULT_REDIS_HOSTNAME:  &str = "127.0.0.1";
+pub const JWT_COOKIE_NAME:         &str = "jwt";
+pub const ACTIVE_TOKEN_KEY_PREFIX: &str = "2FA:Tokens:Active";
+pub const BANNED_TOKEN_KEY_PREFIX: &str = "2FA:Tokens:Banned";
+pub const TOKEN_TTL_SECONDS:       i64  = 600; // 10 minutes
+
+lazy_static! {
+	pub static ref JWT_SECRET:        String = set_token();
+	pub static ref POSTGRES_PASSWORD: String = set_pg_password();
+	pub static ref DATABASE_URL:      String = set_db_url();
+	pub static ref REDIS_HOST_NAME:   String = set_redis_host();
+}
 
 pub mod prod {
 	pub const APP_ADDRESS:   &str = "0.0.0.0:3000";
@@ -17,16 +27,16 @@ pub mod test {
 	pub const URI_AUTH:      &str = "https://localhost:3000";
 }
 
-lazy_static! {
-	pub static ref JWT_SECRET:        String = set_token();
-	pub static ref POSTGRES_PASSWORD: String = set_pg_password();
-	pub static ref DATABASE_URL:      String = set_db_url();
-}
-
 fn set_db_url() -> String {
 	let password = set_pg_password();
 	let url      = format!("postgres://postgres:{}@localhost:5444", password);
 	url
+}
+
+fn set_redis_host() -> String {
+	dotenv().ok();
+	let envar_name = env::REDIS_HOST_NAME_ENV_VAR;
+	std_env::var(envar_name).unwrap_or(DEFAULT_REDIS_HOSTNAME.to_owned())
 }
 
 fn set_pg_password() -> String {
@@ -54,5 +64,7 @@ fn set_token() -> String {
 }
 
 pub mod env {
-	pub const JWT_SECRENT_ENV_VAR: &str = "JWT_SECRET";
+	pub const DATABASE_URL_ENV_VAR:    &str = "DATABASE_URL";
+	pub const JWT_SECRENT_ENV_VAR:     &str = "JWT_SECRET";
+	pub const REDIS_HOST_NAME_ENV_VAR: &str = "REDIS_HOST_NAME";
 }

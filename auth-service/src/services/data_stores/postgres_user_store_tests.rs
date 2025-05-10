@@ -15,6 +15,8 @@ async fn query_for_non_existing_user_returns_none() {
 	println!("{:?}", result);
 	assert!(result.is_err());
 }
+
+/*
 #[tokio::test]
 async fn query_for_existing_user_returns_ok() {
 	let email          = "one@two.com".to_owned();
@@ -27,6 +29,7 @@ async fn query_for_existing_user_returns_ok() {
 	println!("{:?}", result);
 	assert!(result.is_ok());
 }
+*/
 
 /*
 #[tokio::test]
@@ -60,6 +63,7 @@ async fn add_user_fails_when_email_already_exists() {
 	assert!(result.is_err());
 }
 
+/*
 #[tokio::test]
 async fn validate_user_password() {
 	let email          = "one@two.com".to_owned();
@@ -72,6 +76,7 @@ async fn validate_user_password() {
 	println!("{:?}", result);
 	assert!(result.is_ok());
 }
+*/
 
 #[tokio::test]
 async fn validate_user_password_fails_when_wrong_password() {

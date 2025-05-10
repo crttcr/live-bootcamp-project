@@ -18,16 +18,24 @@ services:
         DATABASE_URL: "postgres://postgres:${POSTGRES_PASSWORD}@db:5444"
     ports:
       - "3000:3000"                     # expose :3000 so apps outside container can connect to it
+    depends_on:
+      - db
 
   db:
     image:   postgres:15.2-alpine
     restart: "always"                   # auto restart container on crash
     environment:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      ports:
-        - 5444:5432
-      volumes:
-        - db:/var/lib/postresql/data
+    ports:
+      - "5444:5432"
+    volumes:
+      - db:/var/lib/postresql/data
+
+  redis:
+    image: redis:7.0-alpine
+    restart: "always"
+    ports:
+      - "6379:6379"
 
 volumes:
   db:
