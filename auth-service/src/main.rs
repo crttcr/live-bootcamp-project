@@ -9,10 +9,12 @@ use auth_service::services::data_stores::hashmap_2fa_code_store::HashmapTwoFACod
 use auth_service::services::data_stores::redis_banned_token_store::RedisBannedTokenStore;
 use auth_service::services::data_stores::postgres_user_store::PostgresUserStore;
 use auth_service::services::mock_email_client::MockEmailClient;
+use auth_service::utils::tracing::init_tracing;
 
 #[tokio::main]
 async fn main()
 {
+	init_tracing();
 	let e_build        = "Failed to build application";
 	let e_run          = "Failed to run application";
 	let pg_pool        = configure_postgresql().await;

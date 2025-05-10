@@ -10,6 +10,7 @@ type HashResult   = Result<String, Box<dyn Error + Send + Sync>>;
 type VerifyResult = Result<(),     Box<dyn Error + Send + Sync>>;
 
 
+#[tracing::instrument(name = "Hash password(sync)", skip_all)]
 pub fn hash_password_sync(password: String) -> HashResult
 {
 	let bytes  = password.as_bytes();
@@ -20,11 +21,13 @@ pub fn hash_password_sync(password: String) -> HashResult
 	Ok(hash.to_string())
 }
 
+#[tracing::instrument(name = "Hash password(async)", skip_all)]
 pub async fn hash_password_async(password: String) -> HashResult 
 {
 	tokio::task::spawn_blocking(move || hash_password_sync(password)).await?
 }
 
+#[tracing::instrument(name = "Verify password hash(sync)", skip_all)]
 pub fn verify_password_sync(existing_hash: String, password_candidate: String) -> VerifyResult 
 {
 	let existing_hash: PasswordHash<'_> = PasswordHash::new(existing_hash.as_str())?;
@@ -33,6 +36,7 @@ pub fn verify_password_sync(existing_hash: String, password_candidate: String) -
 		.map_err(|e| e.into())
 }
 
+#[tracing::instrument(name = "Verify password hash(async)", skip_all)]
 pub async fn verify_password_async(existing: String, password: String) -> VerifyResult
 {
 	tokio::task::spawn_blocking(move || verify_password_sync(existing, password)).await?
