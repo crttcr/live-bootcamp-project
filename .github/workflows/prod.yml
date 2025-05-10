@@ -8,17 +8,33 @@ on:
       - x-releases
   workflow_dispatch:
 
+env:
+  SQLX_OFFLINE: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
 
+    # Service containers to run with the `test` container job
+    services:
+      postgres:                            # Label used to access the service container
+        image: postgres:15.2-alpine        # Docker Hub image
+        env:                               # Environment variables scoped only for the `postgres` element
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: postgres
+        ports:                             # When mapping ports w/ the ports keyword, GitHub uses the --publish command
+          - 5432:5432                      # to publish container ports to the host. Opens tcp port 5432 on host + container
+      redis:
+        image: redis:7.0-alpine
+        ports:
+          - 6379:6379
+
     steps:
-      # Checkout code from the repository
-    - name: Checkout code
+    - name: Checkout code                  # Checkout code from the repository
       uses: actions/checkout@v2
 
-      # Cache dependencies to speed up build times
-    - name: Cache dependencies
+    - name: Cache dependencies             # Cache dependencies to speed up build times
       uses: actions/cache@v3
       with:
         path: |
@@ -42,11 +58,11 @@ jobs:
       working-directory: ./auth-service
       run: |
         export JWT_SECRET=secret
+        export DATABSE_URL=postgres://postgres:${{secrets.POSTGRES_PASSWORD}}@localhost:5432
         cargo build --verbose
         cargo test  --verbose
 
-      # Set up Docker Buildx for multi-platform builds
-    - name: Set up Docker Buildx
+    - name: Set up Docker Buildx                        # Set up Docker Buildx for multi-platform builds
       uses: docker/setup-buildx-action@v2
 
     - name: Log in to Docker Hub
@@ -94,8 +110,9 @@ jobs:
         password: ${{ secrets.DROPLET_PASSWORD }}
         script: |
           cd ~
-          export AUTH_SERVICE_IP=${{ vars.DROPLET_IP    }}
-          export JWT_SECRET=${{      secrets.JWT_SECRET }}
+          export AUTH_SERVICE_IP=${{  vars.DROPLET_IP           }}
+          export JWT_SECRET=${{       secrets.JWT_SECRET        }}
+          export POSTGRES_PASSWORD=${{secrets.POSTGRES_PASSWORD }}
           docker compose down
           docker compose pull
           docker compose up -d
