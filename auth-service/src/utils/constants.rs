@@ -29,7 +29,7 @@ pub mod test {
 
 fn set_db_url() -> String {
 	let password = set_pg_password();
-	let url      = format!("postgres://postgres:{}@localhost:5444", password);
+	let url      = format!("postgres://postgres:{}@localhost:5432", password);
 	url
 }
 
