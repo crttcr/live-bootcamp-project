@@ -4,7 +4,7 @@ use crate::domain::data_stores::UserStoreError;
 use crate::domain::email::Email;
 use crate::domain::password::Password;
 use crate::domain::user::User;
-use crate::services::hashmap_user_store::HashmapUserStore;
+use crate::services::data_stores::hashmap_user_store::HashmapUserStore;
 
 #[tokio::test]
 async fn test_add_user() {

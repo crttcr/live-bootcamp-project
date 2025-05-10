@@ -81,11 +81,10 @@ pub async fn validate_token(
 	println!("Validating token\n\t{:?}", token);
 
 	match banned_tokens.read().await.contains_token(token).await {
-		Ok(true) => {
+		true => {
 			println!("Token is banned: {:?}", token);
 			return Err(Error::from(ErrorKind::InvalidToken));
 		},
-		Err(_) => {return Err(Error::from(ErrorKind::InvalidToken))},
 		_ => {}
 	}
 

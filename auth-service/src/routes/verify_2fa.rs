@@ -7,13 +7,6 @@ use serde::{Deserialize, Serialize};
 use crate::app_state::AppState;
 use crate::domain::{AuthAPIError, Email, LoginAttemptId, TwoFACode};
 use crate::utils::auth::generate_auth_cookie;
-/*
-{
-  "email":          "user@example.com",
-  "loginAttemptId": "b59d20f4-dfcf-4fc5-af99-e312e0e2d2aa",
-  "2FACode":        "123456"
-}
-*/
 
 #[derive(Deserialize, Debug, Serialize)]
 pub struct Verify2FARequest {
@@ -23,6 +16,15 @@ pub struct Verify2FARequest {
    #[serde(rename = "2FACode")]
    pub code:             String,
 }
+
+/*
+// This is what the request looks like in Json
+{
+  "email":          "user@example.com",
+  "loginAttemptId": "b59d20f4-dfcf-4fc5-af99-e312e0e2d2aa",
+  "2FACode":        "123456"
+}
+*/
 
 
 pub async fn verify_2fa(

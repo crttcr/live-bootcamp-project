@@ -7,6 +7,10 @@ use axum::http::Method;
 use axum::routing::post;
 use axum::serve::Serve;
 use axum::Router;
+use redis;
+use redis::RedisResult;
+use sqlx::PgPool;
+use sqlx::postgres::PgPoolOptions;
 use tower_http::cors::CorsLayer;
 use tower_http::services::ServeDir;
 
@@ -61,4 +65,17 @@ impl Application {
         println!("listening on {}", &self.address);
         self.server.await
     }
+}
+
+pub async fn create_postgres_pool(url: &str) -> Result<PgPool, sqlx::Error> {
+    let result = PgPoolOptions::new().max_connections(3).connect(url).await;
+    println!("PostgreSQL pool created: {:?}", result);
+    result
+}
+
+pub fn create_redis_client(redis_hostname: String) -> RedisResult<redis::Client> {
+    let redis_url = format!("redis://{}/", redis_hostname);
+    let client    = redis::Client::open(redis_url);
+    println!("Redis client created: {:?}", client);
+    client
 }

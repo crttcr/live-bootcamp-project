@@ -1,5 +1,5 @@
 use crate::domain::{Email, LoginAttemptId, TwoFACode, TwoFACodeStore, TwoFACodeStoreError};
-use crate::services::hashmap_2fa_code_store::HashmapTwoFACodeStore;
+use crate::services::data_stores::hashmap_2fa_code_store::HashmapTwoFACodeStore;
 
 #[tokio::test]
 async fn lookup_returns_not_found_for_empty_store() {

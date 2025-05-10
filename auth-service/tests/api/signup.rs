@@ -1,83 +1,48 @@
-use crate::helpers::TestApp;
+// use test_helpers::api_test;
+use crate::helpers_harness::TestApp;
 
-use auth_service::domain::error::ErrorResponse;
+use crate::helpers_arrange::TestUser;
+use crate::helpers_assert::{assert_error_message, assert_status};
+use crate::helpers_harness::get_random_email;
 use auth_service::routes::signup::SignupResponse;
-use crate::helpers::get_random_email;
 use serde_json::json;
 
-
-/*
-#[tokio::test]
-pub async fn signup_should_return_200()
-{
-    let app      = TestApp::new().await;
-    let response = app.post_signup().await;
-
-    assert_eq!(response.status().as_u16(), 200);
-//    assert_eq!(response.headers().get("content-type").unwrap(), "text/html");
-}
-*/
-
- 
 #[tokio::test]
 pub async fn should_return_201_if_valid_input() {
-    // Arrange
-    let app          = TestApp::new().await;
-    let random_email = get_random_email();
-    let test_case    = json!({
-            "email":       random_email,
-            "password":    "pAssword123!",
-            "requires2FA": true,
-        });
-    // Act
-    let response = app.post_signup(&test_case).await;
-    let status   = response.status().as_u16();
-
-    // Assert
-    assert_eq!(status, 201, "Expected 201 Created, but got {}. Input: {:?}", response.status(), test_case);
-} 
+    let mut app  = TestApp::new().await;
+    let user     = TestUser::new();
+    let response = app.post_signup(&user.signup_payload()).await; // Act
+    assert_status(&response, 201, None);
+    app.clean_up().await;
+}
 
 #[tokio::test]
 pub async fn should_succeed_with_the_expected_result() {
-    // Arrange
-    let app          = TestApp::new().await;
+    let mut app      = TestApp::new().await;
     let random_email = get_random_email();
-    let test_case    = serde_json::json!({
-            "email":       random_email,
-            "password":    "PassWord123!",
-            "requires2FA": true,
-        });
+    let test_case    = json!({ "email": random_email, "password": "PassWord123!", "requires2FA": true});
+    let message      = "User created successfully!".to_owned();
+    let expected     = SignupResponse{message};
+    let response     = app.post_signup(&test_case).await;               // Act
 
-    // Act
-    let response          = app.post_signup(&test_case).await;
-    let message           = "User created successfully!".to_owned();
-    let expected_response = SignupResponse{message};
-
-    // Assert that we are getting the correct response body!
-    assert_eq!(
+    assert_eq!(                                // Assert matches the correct response body!
         response
             .json::<SignupResponse>()
             .await
             .expect("Could not deserialize response body to UserBody"),
-        expected_response
+        expected
     );
-
+    app.clean_up().await;
 }
 
 #[tokio::test]
 pub async fn should_return_422_upon_malformed_input()
 {
-    let app          = TestApp::new().await;
+    let mut app      = TestApp::new().await;
     let random_email = get_random_email();
     let test_cases   = [
-        serde_json::json!({
-            "email": random_email,
-            "requires2FA": true,
-        }),
-        serde_json::json!({
-            "password": "password123",
-            "requires2FA": true,
-        }),
+        json!({ "email":    random_email,  "requires2FA": true, }),
+        json!({ "password": "password123", "requires2FA": true, }),
     ];
 
     for test_case in test_cases.iter() {
@@ -90,6 +55,7 @@ pub async fn should_return_422_upon_malformed_input()
             test_case
         );
     }
+    app.clean_up().await;
 }
 
 // The signup route should return a 400 HTTP status code if an invalid input is sent.
@@ -118,55 +84,37 @@ async fn should_return_400_if_invalid_input() {
 
     });
 
-    let app        = TestApp::new().await;
+    let mut app    = TestApp::new().await;
     let test_cases = [bad_email, empty_email, short_password];
     for test_case in test_cases.iter() {
         let response = app.post_signup(&test_case).await;
-        assert_eq!(
-            response.status().as_u16(), 
-            400,
-            "Expected 400 Bad Request, but got {}. Input: {:?}",
-            response.status(),
-            test_case
-        );
-        assert_eq!(
-            response
-                .json::<ErrorResponse>()
-                .await
-                .expect("Could not deserialize response body to ErrorResponse")
-                .error,
-            "Invalid credentials".to_owned()
-        );
+        let context  = format!("Failed for request: {:?}", test_case);
+        assert_status(&response, 400, Some(&context));
+        assert_error_message(response, "Invalid credentials").await;
     }
+    app.clean_up().await;
+}
+
+#[tokio::test]
+async fn should_return_400_if_invalid_input_jacob() {
+    let mut app  = TestApp::new().await;
+    let request  = json!({"email": "aaa", "password": "password", "requires2FA": true });
+    let context  = format!("Failed for request: {:?}", request);
+    let response = app.post_signup(&request).await;                       // Act
+    assert_status( &response, 400, Some(&context));                       // Assert
+    assert_error_message(response, "Invalid credentials").await;
+    app.clean_up().await;
 }
 
 #[tokio::test]
 async fn should_return_409_if_email_already_exists() {
-    let valid_input    = json!({
-        "email":       "gt3@car.com",
-        "password":    "PuckerStump@123!",
-        "requires2FA": true,
-    });
+    let mut app = TestApp::new().await;
+    let user    = TestUser::new();
+    let r1      = app.post_signup(&user.signup_payload()).await;        // Act
+    let r2      = app.post_signup(&user.signup_payload()).await;
 
-    // Calling the signup route twice. 
-    // The second request should fail with a 409 HTTP (Conflict) status code    
-    //
-    let app      = TestApp::new().await;
-    let _        = app.post_signup(&valid_input).await;
-    let response = app.post_signup(&valid_input).await;
-    assert_eq!(
-        response.status().as_u16(), 
-        409,
-        "Expected 409 Conflict, but got {}. Input: {:?}",
-        response.status(),
-        valid_input
-    );
-    assert_eq!(
-        response
-            .json::<ErrorResponse>()
-            .await
-            .expect("Could not deserialize response body to ErrorResponse")
-            .error,
-        "User already exists".to_owned()
-    );
+    assert_status(&r1, 201, None);                                   // Assert
+    assert_status(&r2, 409, None);
+    assert_error_message(r2, "User already exists").await;
+    app.clean_up().await;
 }

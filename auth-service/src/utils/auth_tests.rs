@@ -1,7 +1,7 @@
 use axum_extra::extract::cookie::{Cookie, SameSite};
 use chrono::Utc;
 use crate::domain::email::Email;
-use crate::services::hashset_token_store::HashSetTokenStore;
+use crate::services::data_stores::hashset_token_store::HashSetTokenStore;
 use crate::utils::auth::*;
 use crate::utils::constants::*;
 use std::sync::Arc;
