@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-
+use color_eyre::eyre::eyre;
 use crate::domain::{
 	data_stores::{LoginAttemptId, TwoFACode, TwoFACodeStore, TwoFACodeStoreError},
 	email::Email,
@@ -31,7 +31,7 @@ impl TwoFACodeStore for HashmapTwoFACodeStore {
 	async fn remove_code(&mut self, email: &Email) -> Result<(), TwoFACodeStoreError> {
 		match self.codes.remove(email) {
 			Some(_) => Ok(()),
-			None    => Err(TwoFACodeStoreError::UnexpectedError),
+			None    => Err(TwoFACodeStoreError::UnexpectedError(eyre!("No token to remove"))),
 		}
 	}
 

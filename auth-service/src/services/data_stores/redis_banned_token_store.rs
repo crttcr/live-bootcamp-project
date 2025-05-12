@@ -1,10 +1,12 @@
 
 use std::sync::Arc;
+use color_eyre::eyre::{eyre, Context, ContextCompat, Result};
+use color_eyre::eyre::WrapErr;
+use std::convert::TryInto;
 use redis::Commands;
 use redis::Connection;
 use tokio::sync::RwLock;
-
-
+use tracing::{debug, warn};
 use crate::domain::data_stores::TokenStore;
 use crate::domain::data_stores::TokenStoreError;
 use crate::utils::constants::BANNED_TOKEN_KEY_PREFIX;
@@ -23,12 +25,15 @@ impl RedisBannedTokenStore {
 
 #[async_trait::async_trait]
 impl TokenStore for RedisBannedTokenStore {
+    #[tracing::instrument(name = "add token", skip_all)]
     async fn add_token(&mut self, token: String) -> Result<(), TokenStoreError> {
-        let key      = get_key(BANNED_TOKEN_KEY_PREFIX, token.as_str());
+        let key      = make_key(BANNED_TOKEN_KEY_PREFIX, token.as_str());
+        debug!(?key, "Adding key in Redis");
         let ttl: u64 = BANNED_TOKEN_TTL_SECONDS.try_into().unwrap_or(60 * 60 * 2);
         let _: ()    = self.cx.write().await
            .set_ex(key, true, ttl)
-           .map_err(|_| TokenStoreError::UnexpectedError)?;
+           .wrap_err("Failed to add token to Redis")
+           .map_err(TokenStoreError::UnexpectedError)?;
         Ok(())
     }
 
@@ -36,34 +41,45 @@ impl TokenStore for RedisBannedTokenStore {
     // KEYS blocks the Redis server and scans the entire keyspace.
     // For large production databases, this is dangerous
     //
+    #[tracing::instrument(name = "count tokens", skip_all)]
     async fn count(&self) -> Result<u64, TokenStoreError> {
         let prefix  = BANNED_TOKEN_KEY_PREFIX;
         let pattern = format!("{}*", prefix);
         let mut cx  = self.cx.write().await;
-        let keys: Vec<String> = cx.keys(pattern).map_err(|_| TokenStoreError::UnexpectedError)?;
+        let keys: Vec<String> = cx.keys(pattern)
+           .wrap_err("Failed to count banned tokens in Redis")
+           .map_err(TokenStoreError::UnexpectedError)?;
         let count   = keys.len();
         Ok(count as u64)
     }
 
+    #[tracing::instrument(name = "clear tokens", skip_all)]
     async fn clear(&mut self) -> Result<(), TokenStoreError> {
-        Err(TokenStoreError::UnexpectedError)
+        warn!("Unsupported operation: Clearing all banned tokens.");
+        let err = eyre!("Clearing all banned tokens is not supported.");
+        Err(TokenStoreError::UnexpectedError(err))
     }
-    
+
+    #[tracing::instrument(name = "contains token", skip_all)]   
     async fn contains_token(&self, token: &str) -> bool {
-        let key = get_key(BANNED_TOKEN_KEY_PREFIX, token);
+        let key = make_key(BANNED_TOKEN_KEY_PREFIX, token);
+        debug!(?key, "Checking key in Redis");
         self.cx.write().await.exists(key).unwrap_or_else(|_| false)
     }
-    
+
+    #[tracing::instrument(name = "delete token", skip_all)]
     async fn delete_token(&mut self, token: &str) -> Result<(), TokenStoreError> {
-        let key   = get_key(BANNED_TOKEN_KEY_PREFIX, token);
+        let key   = make_key(BANNED_TOKEN_KEY_PREFIX, token);
+        debug!(?key, "Deleting key in Redis");
         let _: () = self.cx
-           .write().await
-           .del(key)
-            .map_err(|_| TokenStoreError::UnexpectedError)?;
+            .write().await
+            .del(key)
+            .wrap_err("Failed to delete token from Redis")   
+            .map_err(TokenStoreError::UnexpectedError)?;
         Ok(())      
     }
 }
 
-fn get_key(prefix: &str, token: &str) -> String {
+fn make_key(prefix: &str, token: &str) -> String {
     format!("{}:{}", prefix, token)
 }

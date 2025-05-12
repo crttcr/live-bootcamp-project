@@ -4,7 +4,12 @@ use tracing;
 use tracing::{Level, Span};
 use tracing_subscriber;
 use std::time::Duration;
+use color_eyre::eyre::Result;
+use tracing_error::ErrorLayer;
+use tracing_subscriber::prelude::*;
+use tracing_subscriber::{fmt, EnvFilter};
 
+/*
 pub fn init_tracing() {
 	let level = Level::DEBUG;
 	tracing_subscriber::fmt()
@@ -12,7 +17,25 @@ pub fn init_tracing() {
 		.with_max_level(level)
 		.init();
 }
+*/
 
+pub fn init_tracing() -> Result<()> {
+	let fmt_layer = fmt::layer().compact();          // Create a formatting layer for tracing output with a compact format
+
+	// Create a filter layer to control the verbosity of logs
+	// Try to get the filter configuration from the environment variables
+	// If it fails, default to the "info" log level
+	let filter_layer = EnvFilter::try_from_default_env().or_else(|_| EnvFilter::try_new("info"))?;
+
+	// Build the tracing subscriber registry with the formatting layer,
+	// the filter layer, and the error layer for enhanced error reporting
+	tracing_subscriber::registry()
+		.with(filter_layer) // Add the filter layer to control log verbosity
+		.with(fmt_layer) // Add the formatting layer for compact log output
+		.with(ErrorLayer::default()) // Add the error layer to capture error contexts
+		.init(); // Initialize the tracing subscriber
+	Ok(())
+}
 
 // Creates a new tracing span with a unique request ID for each incoming request.
 // This helps in tracking and correlating logs for individual requests.

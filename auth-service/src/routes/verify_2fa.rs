@@ -4,6 +4,7 @@ use axum::Json;
 use axum::response::IntoResponse;
 use axum_extra::extract::CookieJar;
 use serde::{Deserialize, Serialize};
+use tracing::debug;
 use crate::app_state::AppState;
 use crate::domain::{AuthAPIError, Email, LoginAttemptId, TwoFACode};
 use crate::utils::auth::generate_auth_cookie;
@@ -27,6 +28,7 @@ pub struct Verify2FARequest {
 */
 
 
+#[tracing::instrument(name = "verify 2fa", skip_all)]
 pub async fn verify_2fa(
    State(state):  State<AppState>,
    jar:           CookieJar,
@@ -42,6 +44,8 @@ pub async fn verify_2fa(
    if tuple.0 != login_attempt_id { return Err(AuthAPIError::IncorrectCredentials); }
    if tuple.1 != two_fa_code      { return Err(AuthAPIError::IncorrectCredentials); }
 
+   debug!("Credentials verified");
+   
    // Verified.
    // * Remove the entry from the store
    // * Generate a new auth cookie
@@ -50,15 +54,17 @@ pub async fn verify_2fa(
    remove_entry_from_store(&state, &email).await?;
    let auth_cookie = match generate_auth_cookie(&email) {
       Ok(cookie) => cookie,
-      Err(_)     => return Err(AuthAPIError::UnexpectedError),
+      Err(e)     => return Err(AuthAPIError::UnexpectedError(e)),
    };
 
+   debug!("Adding to cookie jar");
    let cookies = jar.add(auth_cookie);
    Ok((cookies, StatusCode::OK.into_response()))
 }
 
 // This helper function ensures that our read lock is dropped as soon as we've completed the read
 //
+#[tracing::instrument(name = "get tuple from store", skip_all)]
 async fn get_tuple_from_store(
    state: &AppState,
    email: &Email,
@@ -69,6 +75,7 @@ async fn get_tuple_from_store(
    raw.map_err(|_| AuthAPIError::IncorrectCredentials)
 }
 
+#[tracing::instrument(name = "remove entry from store", skip_all)]
 async fn remove_entry_from_store(
    state: &AppState,
    email: &Email,

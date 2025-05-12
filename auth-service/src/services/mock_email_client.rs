@@ -1,4 +1,6 @@
 use crate::domain::{Email, EmailClient};
+use color_eyre::Result;
+use tracing::debug;
 
 // MockEmailClient simply logs the recipient, subject, and content to standard output
 //
@@ -16,8 +18,8 @@ impl EmailClient for MockEmailClient
 		recipient:     &Email,
 		subject:       &str,
 		content:       &str,
-	) -> Result<(), String> {
-		println!(
+	) -> Result<()> {
+		debug!(
 			"Sending email to {} with subject: {} and content: {}",
 			recipient.as_ref(),
 			subject,

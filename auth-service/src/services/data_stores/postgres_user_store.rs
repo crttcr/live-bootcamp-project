@@ -1,5 +1,6 @@
+use color_eyre::eyre::{eyre, Context, Result};
 use crate::domain::data_stores::{UserStore, UserStoreError};
-use crate::domain::{Email, Password, User};
+use crate::domain::{Email, EmailError, Password, PasswordError, User};
 use crate::utils::hash_utils;
 use crate::utils::hash_utils::hash_password_async;
 use sqlx::PgPool;
@@ -12,10 +13,13 @@ pub struct UserRecord {
 }
 
 impl UserRecord {
-	pub fn into_user(self) -> User {
-		let email    = Email::parse(self.email).unwrap();
-		let password = Password::parse(self.password_hash.as_str()).unwrap();
-		User::new(email, password, self.requires_2fa)
+	pub fn into_user(self) -> Result<User, UserStoreError> {
+		let e_email  = |e: EmailError|    UserStoreError::UnexpectedError(eyre!(e));
+		let e_pword  = |e: PasswordError| UserStoreError::UnexpectedError(eyre!(e));
+		let email    = Email::parse(self.email).map_err(e_email)?;
+		let password = Password::parse(self.password_hash.as_str()).map_err(e_pword)?;
+		let user     = User::new(email, password, self.requires_2fa);
+		Ok(user)
 	}
 }
 
@@ -43,8 +47,7 @@ impl UserStore for PostgresUserStore {
 		let email          = user.email.as_ref();
 		let password       = user.password.to_string();
 		let hash_result    = hash_password_async(password).await;
-		let hash           = hash_result.map_err(|_| UserStoreError::UnexpectedError)?;
-
+		let hash           = hash_result.map_err(UserStoreError::UnexpectedError)?;
 		sqlx::query(
 			r#"
 	        INSERT INTO users (email, password_hash, requires_2fa)
@@ -56,7 +59,7 @@ impl UserStore for PostgresUserStore {
 			.bind(user.requires_2fa)
 			.execute(&self.pool)
 			.await
-			.map_err(|_| UserStoreError::UnexpectedError)?;
+			.map_err(|e| UserStoreError::UnexpectedError(e.into()))?;
 			Ok(())
 	}
 
@@ -65,10 +68,13 @@ impl UserStore for PostgresUserStore {
 		let email  = email.get_email().to_owned();
 		let result = sqlx::query_as!(UserRecord, "SELECT email, password_hash, requires_2fa FROM users WHERE email = $1", email)
 			.fetch_optional(&self.pool)
-			.await.map_err(|_| UserStoreError::UnexpectedError)?;
+			.await.map_err(|e| UserStoreError::UnexpectedError(e.into()))?;
 		match result {
 			None      => Err(UserStoreError::UserNotFound),
-			Some(dto) => Ok(dto.into_user())
+			Some(dto) => match dto.into_user() {
+				Ok(user) => Ok(user),
+				Err(e)   => Err(e),
+			}
 		}
 	}
 

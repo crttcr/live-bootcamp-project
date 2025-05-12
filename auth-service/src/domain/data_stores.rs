@@ -1,32 +1,71 @@
-use serde::{Deserialize, Serialize};
 use super::email::Email;
 use super::password::Password;
 use super::user::User;
+use color_eyre::eyre::{eyre, Report, Result, Context};
+use serde::{Deserialize, Serialize};
 use std::fmt;
+use thiserror::Error;
 
-
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Debug, Error)]
 pub enum UserStoreError
 {
+    #[error("Invalid credentials")]
     InvalidCredentials,
-    UnexpectedError,
+    #[error("Unexpected error")]   
+    UnexpectedError(#[source] Report),
+    #[error("User already exists")]
     UserAlreadyExists,
+    #[error("User not found")]
     UserNotFound,
 }
 
-#[derive(Debug, PartialEq, Copy, Clone)]
+impl PartialEq for UserStoreError {
+    fn eq(&self, other: &Self) -> bool {
+        matches!(
+            (self, other),
+            (  Self::UserAlreadyExists,  Self::UserAlreadyExists )
+            | (Self::UserNotFound,       Self::UserNotFound      )
+            | (Self::InvalidCredentials, Self::InvalidCredentials)
+            | (Self::UnexpectedError(_), Self::UnexpectedError(_))
+            )
+    }
+}
+
+#[derive(Debug, Error)]
 pub enum TokenStoreError 
 {
+    #[error("Token is blank")]
     BlankToken,
-    UnexpectedError,
+    #[error("Unexpected error")]  
+    UnexpectedError(#[source] Report),
 }
 
-#[derive(Debug, PartialEq)]
+impl PartialEq for TokenStoreError {
+    fn eq(&self, other: &Self) -> bool {
+        matches!(
+            (self, other),
+            (  Self::BlankToken,         Self::BlankToken)
+            | (Self::UnexpectedError(_), Self::UnexpectedError(_))
+        )
+    }
+}
+#[derive(Debug, Error)]
 pub enum TwoFACodeStoreError {
+    #[error("Invalid code")]
     LoginAttemptIdNotFound,
-    UnexpectedError,
+    #[error("Unexpected error")]
+    UnexpectedError(#[source] Report),
 }
 
+impl PartialEq for TwoFACodeStoreError {
+    fn eq(&self, other: &Self) -> bool {
+        matches!(
+            (self, other),
+            (  Self::LoginAttemptIdNotFound, Self::LoginAttemptIdNotFound)
+            | (Self::UnexpectedError(_),     Self::UnexpectedError(_)    )
+        )
+    }
+}
 
 #[async_trait::async_trait]
 pub trait UserStore 
@@ -55,8 +94,9 @@ impl LoginAttemptId {
         Self(id)
     }
 
-    pub fn parse(id: String) -> Result<Self, String> {
-        let _ = uuid::Uuid::parse_str(&id).map_err(|e| format!("Invalid uuid {}", e))?;
+    pub fn parse(id: String) -> Result<Self> {
+        let id = uuid::Uuid::parse_str(&id).wrap_err("Invalid LoginAttemptId")?;
+        let id = id.to_string();
         Ok(Self(id))
     }
     
@@ -96,9 +136,9 @@ impl TwoFACode {
         Self(code)
     }
     
-    pub fn parse(code: String) -> Result<Self, String> {
-        if !code.chars().all(|c| c.is_digit(10))   { return Err(format!("Code must contain only digits. Value({})", code)); }
-        if code.len() != 6                         { return Err(format!("Code must be exactly 6 digits. Value({})", code)); }
+    pub fn parse(code: String) -> Result<Self> {
+        if !code.chars().all(|c| c.is_digit(10))   { return Err(eyre!(format!("Code must contain only digits. Value({})", code))); }
+        if code.len() != 6                         { return Err(eyre!(format!("Code must be exactly 6 digits. Value({})", code))); }
         Ok(Self(code))
     }
     

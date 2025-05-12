@@ -1,8 +1,13 @@
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+use thiserror::Error;
+
+#[derive(Clone, Debug, PartialEq, Eq, Error)]
 pub enum PasswordError {
+   #[error("Password is blank")]
     BlankValue,
+   #[error("Password is insecure")]
     Insecure,
+   #[error("Password is too short")]
     TooShort,
 }
 

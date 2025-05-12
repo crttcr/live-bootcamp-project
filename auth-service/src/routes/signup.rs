@@ -2,6 +2,7 @@ use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::Json;
+use color_eyre::eyre::eyre;
 use serde::{Deserialize, Serialize};
 use tracing::{info, instrument, warn};
 use crate::app_state::AppState;
@@ -23,7 +24,7 @@ pub struct SignupResponse {
     pub message: String,
 }
 
-#[instrument(name = "Signup", skip_all, err(Debug))] 
+#[instrument(name = "Signup", skip_all)]
 pub async fn signup(
     State(state):   State<AppState>,
     Json(request):  Json<SignupRequest>,
@@ -48,7 +49,8 @@ pub async fn signup(
         }
         Err(e) => {
             warn!(?e, "Failed to add user");
-            Err(AuthAPIError::UnexpectedError)
+            //Err(AuthAPIError::UnexpectedError(eyre!(e)))
+            Err(AuthAPIError::UnexpectedError(e.into()))
         }
     }
 }

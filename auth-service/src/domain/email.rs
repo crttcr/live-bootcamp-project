@@ -1,9 +1,13 @@
+use thiserror::Error;
 use validator::validate_email;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Error)]
 pub enum EmailError {
+    #[error("Email format is not valid")]
     BadFormat,
+    #[error("Email value is empty")]   
     EmptyValue,
+    #[error("Email value is missing @ symbol")]  
     MissingAtSymbol,
 }
 

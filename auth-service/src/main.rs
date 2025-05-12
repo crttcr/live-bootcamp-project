@@ -3,6 +3,7 @@ use auth_service::utils::constants::{prod, DATABASE_URL, REDIS_HOST_NAME};
 use auth_service::{app_state::AppState, create_postgres_pool, create_redis_client, Application};
 use sqlx::PgPool;
 use std::sync::Arc;
+use color_eyre;
 use redis::ConnectionLike;
 use tokio::sync::RwLock;
 use auth_service::services::data_stores::hashmap_2fa_code_store::HashmapTwoFACodeStore;
@@ -14,9 +15,9 @@ use auth_service::utils::tracing::init_tracing;
 #[tokio::main]
 async fn main()
 {
-	init_tracing();
-	let e_build        = "Failed to build application";
-	let e_run          = "Failed to run application";
+	configure_logging();
+	configure_tracing();
+	
 	let pg_pool        = configure_postgresql().await;
 	let redis_cx       = configure_redis();
 	let redis_cx       = Arc::new(RwLock::new(redis_cx));
@@ -25,11 +26,16 @@ async fn main()
 	let code_store     = Arc::new(RwLock::new(HashmapTwoFACodeStore::new()));
 	let email_client   = Arc::new(RwLock::new(MockEmailClient::new()));
 	let app_state      = AppState::new(user_store, banned_tokens, code_store, email_client);
+	let e_build        = "Failed to build application";
+	let e_run          = "Failed to run application";
 	let app            = Application::build(app_state, prod::APP_ADDRESS)
 		.await
 		.expect(e_build);
 	app.run().await.expect(e_run);
 }
+
+fn configure_logging() { color_eyre::install().expect("Failed to install color_eyre"); }
+fn configure_tracing() { init_tracing()       .expect("Failed to initialize tracing"); }
 
 // Configuring a Postgres connection pool means:
 //
