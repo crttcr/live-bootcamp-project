@@ -1,12 +1,12 @@
 use super::constants::{JWT_COOKIE_NAME, JWT_SECRET, TOKEN_TTL_SECONDS};
 use crate::app_state::TokenStoreType;
 use crate::domain::email::Email;
-use color_eyre::eyre::{eyre, Context, ContextCompat, Result};
 use axum_extra::extract::cookie::{Cookie, SameSite};
 use chrono::Utc;
+use color_eyre::eyre::{eyre, Context, Result};
 use color_eyre::Report;
 use jsonwebtoken;
-use jsonwebtoken::errors::{Error, ErrorKind};
+use jsonwebtoken::errors::Error;
 use jsonwebtoken::{DecodingKey, EncodingKey, Validation};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;

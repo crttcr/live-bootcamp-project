@@ -1,4 +1,5 @@
 use core::panic;
+use secrecy::Secret;
 use crate::domain::data_stores::UserStore;
 use crate::domain::data_stores::UserStoreError;
 use crate::domain::email::Email;
@@ -53,13 +54,14 @@ async fn test_user_can_be_retrieved_from_store() {
 async fn test_validate_user() {
    let mut store = HashmapUserStore::default();
    let email     = Email::parse("joe@boo.io".to_owned()).unwrap();
-   let password  = Password::parse("Horse1234!").unwrap();
+   let password  = Secret::new("Horse1234!".to_owned());
+   let password  = Password::parse(password).unwrap();
    
    let user      = User::new(email.to_owned(), password.to_owned(), false);
    let _         = store.add_user(user).await;
    let result    = store.validate_user(&email, &password).await;
    match result {
-      Ok(())  => { println!("Validated user with email {:?} using password {}", email, password); }
+      Ok(())  => { println!("Validated user with email {}", email); }
       Err(_)  => { panic!("User not found"); }
    }
 }
@@ -67,7 +69,8 @@ async fn test_validate_user() {
 async fn construct_store_with_test_user<'a>() -> (Email, HashmapUserStore) {
    let mut store = HashmapUserStore::default();
    let email     = Email::parse("joe@boo.io".to_owned()).unwrap();
-   let password  = Password::parse("Horse1234!").unwrap();
+   let password  = Secret::new("Horse1234!".to_owned());
+   let password  = Password::parse(password).unwrap();
    let user      = User::new(email.clone(), password, false);
    let _         = store.add_user(user).await;
    (email, store)

@@ -4,6 +4,7 @@ use argon2::password_hash::PasswordVerifier;
 use argon2::password_hash::SaltString;
 use argon2::{Algorithm, Argon2, Params, Version};
 use color_eyre::eyre;
+use color_eyre::eyre::Context;
 
 
 type HashResult   = eyre::Result<String>;
@@ -35,11 +36,12 @@ pub async fn hash_password_async(password: String) -> HashResult
 #[tracing::instrument(name = "Verify password hash(sync)", skip_all)]
 pub fn verify_password_sync(existing_hash: String, password_candidate: String) -> VerifyResult 
 {
-	let existing_hash: PasswordHash<'_> = PasswordHash::new(existing_hash.as_str())?;
+	let existing_ref                    = existing_hash.as_str();
+	let existing_hash: PasswordHash<'_> = PasswordHash::new(existing_ref)?;
+	let candidate_bytes                 = password_candidate.as_bytes();
 	Argon2::default()
-		.verify_password(password_candidate.as_bytes(), &existing_hash)
-		.map_err(|e| e.into())
-	//	.wrap_err("Failed ot verify password")"
+		.verify_password(candidate_bytes, &existing_hash)
+		.wrap_err("Failed to verify password")
 }
 
 #[tracing::instrument(name = "Verify password hash(async)", skip_all)]

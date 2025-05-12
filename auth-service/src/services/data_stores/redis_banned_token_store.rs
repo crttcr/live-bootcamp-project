@@ -1,15 +1,14 @@
-
-use std::sync::Arc;
-use color_eyre::eyre::{eyre, Context, ContextCompat, Result};
-use color_eyre::eyre::WrapErr;
-use std::convert::TryInto;
-use redis::Commands;
-use redis::Connection;
-use tokio::sync::RwLock;
-use tracing::{debug, warn};
 use crate::domain::data_stores::TokenStore;
 use crate::domain::data_stores::TokenStoreError;
 use crate::utils::constants::BANNED_TOKEN_KEY_PREFIX;
+use color_eyre::eyre::WrapErr;
+use color_eyre::eyre::{eyre, Result};
+use redis::Commands;
+use redis::Connection;
+use std::convert::TryInto;
+use std::sync::Arc;
+use tokio::sync::RwLock;
+use tracing::{debug, warn};
 
 const BANNED_TOKEN_TTL_SECONDS: u64 = 60 * 60 * 2; // 2 hours
 

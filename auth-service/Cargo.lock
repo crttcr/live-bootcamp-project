@@ -95,6 +95,7 @@ dependencies = [
  "getrandom 0.2.16",
  "jsonwebtoken",
  "lazy_static",
+ "log",
  "quickcheck",
  "quickcheck_macros",
  "rand 0.8.5",

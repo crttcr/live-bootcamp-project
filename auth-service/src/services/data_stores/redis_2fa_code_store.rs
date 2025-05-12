@@ -1,7 +1,7 @@
-use std::sync::Arc;
-use color_eyre::eyre::{eyre, Context};
+use color_eyre::eyre::Context;
 use redis::{Commands, Connection};
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing::debug;
 

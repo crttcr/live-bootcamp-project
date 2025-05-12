@@ -29,12 +29,6 @@ impl TestUser {
 		Self::with_attributes(None, None, true)
 	}
 
-	/*
-	pub fn with_email(email: &str) -> Self {
-		Self::with_attributes(Some(email), None, true)
-	}
-	*/
-
 	/// Get a signup JSON payload for this user
 	pub fn signup_payload(&self) -> serde_json::Value {
 		serde_json::json!({
@@ -47,7 +41,7 @@ impl TestUser {
 	/// Get a login JSON payload for this user
 	pub fn login_payload(&self) -> serde_json::Value {
 		serde_json::json!({
-            "email": self.email,
+            "email":    self.email,
             "password": self.password,
         })
 	}

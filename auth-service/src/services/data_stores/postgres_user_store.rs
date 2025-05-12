@@ -1,8 +1,9 @@
-use color_eyre::eyre::{eyre, Context, Result};
 use crate::domain::data_stores::{UserStore, UserStoreError};
 use crate::domain::{Email, EmailError, Password, PasswordError, User};
 use crate::utils::hash_utils;
 use crate::utils::hash_utils::hash_password_async;
+use color_eyre::eyre::{eyre, Result};
+use secrecy::Secret;
 use sqlx::PgPool;
 
 #[derive(Clone, Debug, sqlx::FromRow, serde::Deserialize, serde::Serialize)]
@@ -17,7 +18,8 @@ impl UserRecord {
 		let e_email  = |e: EmailError|    UserStoreError::UnexpectedError(eyre!(e));
 		let e_pword  = |e: PasswordError| UserStoreError::UnexpectedError(eyre!(e));
 		let email    = Email::parse(self.email).map_err(e_email)?;
-		let password = Password::parse(self.password_hash.as_str()).map_err(e_pword)?;
+		let password = Secret::new(self.password_hash);
+		let password = Password::parse(password).map_err(e_pword)?;
 		let user     = User::new(email, password, self.requires_2fa);
 		Ok(user)
 	}
@@ -45,7 +47,7 @@ impl UserStore for PostgresUserStore {
 		}
 
 		let email          = user.email.as_ref();
-		let password       = user.password.to_string();
+		let password       = user.password.expose().to_owned();
 		let hash_result    = hash_password_async(password).await;
 		let hash           = hash_result.map_err(UserStoreError::UnexpectedError)?;
 		sqlx::query(
@@ -80,10 +82,10 @@ impl UserStore for PostgresUserStore {
 
 	#[tracing::instrument(name = "Validate user credentials", skip_all)] // New!
 	async fn validate_user(&self, email: &Email, password: &Password) -> Result<(), UserStoreError> {
-		let password_str  = password.to_string();
+		let password      = password.expose().to_owned();
 		let user          = self.get_user(&email).await?;
-		let password_hash = user.password.to_string();
-		let result        = hash_utils::verify_password_async(password_hash, password_str).await;
+		let password_hash = user.password.expose().to_owned();
+		let result        = hash_utils::verify_password_async(password_hash, password).await;
 		result.map_err(|_| UserStoreError::InvalidCredentials)
 	}
 }

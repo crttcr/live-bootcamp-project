@@ -2,6 +2,7 @@ use crate::app_state::AppState;
 use crate::domain::email::Email;
 use crate::domain::error::AuthAPIError;
 use crate::domain::password::Password;
+use crate::domain::{LoginAttemptId, TwoFACode};
 use crate::routes::LoginResponse::TwoFactorAuth;
 use crate::utils::auth::generate_auth_cookie;
 use axum::extract::State;
@@ -9,14 +10,14 @@ use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::Json;
 use axum_extra::extract::CookieJar;
-use color_eyre::eyre::eyre;
+use secrecy::{ExposeSecret, Secret};
 use serde::{Deserialize, Serialize};
-use crate::domain::{LoginAttemptId, TwoFACode};
+use tracing::debug;
 
-#[derive(Deserialize, Debug, Serialize)]
+#[derive(Deserialize, Debug)]
 pub struct LoginRequest {
     pub email:          String,
-    pub password:       String,
+    pub password:       Secret<String>,
 }
 
 // The login route can return 2 possible success responses.
@@ -50,8 +51,11 @@ pub async fn login(
     jar:            CookieJar,
     Json(request):  Json<LoginRequest>,
     ) -> (CookieJar, Result<impl IntoResponse, AuthAPIError>) {
+    debug!("Received login request: {:?}", request);
     println!("Received login request: {:?}", request);
-    let password = match Password::parse(&request.password) {
+    debug!("Sending password: {}", request.password.expose_secret());
+    println!("Sending password: {}", request.password.expose_secret());
+    let password = match Password::parse(request.password) {
         Ok(password) => password,
         Err(_) => return (jar, Err(AuthAPIError::InvalidCredentials)),
     };
@@ -75,7 +79,7 @@ pub async fn login(
 
     let user_store = state.user_store.read().await;
     if user_store.validate_user(&email, &password).await.is_err() {
-        println!("User validation failed");
+        println!("User Store:  validation failed");
         return (jar, Err(AuthAPIError::IncorrectCredentials));
     }
     println!("User with email {} authenticated.", &email);
