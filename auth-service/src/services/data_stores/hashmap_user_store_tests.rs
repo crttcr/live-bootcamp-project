@@ -27,7 +27,8 @@ async fn test_add_user() {
 #[tokio::test]
 async fn test_failed_lookup_returns_user_not_found() {
    let store   = HashmapUserStore::default();
-   let email   = Email::parse("somebody@missing.com".to_owned()).unwrap();
+   let email   = Secret::new("somebody@missing.com".to_owned());
+   let email   = Email::parse(email).unwrap();
    let missing = store.get_user(&email).await;
    match missing {
       Err(UserStoreError::UserNotFound) => { println!("Correctly failed to find missing user"); }
@@ -53,7 +54,8 @@ async fn test_user_can_be_retrieved_from_store() {
 #[tokio::test]
 async fn test_validate_user() {
    let mut store = HashmapUserStore::default();
-   let email     = Email::parse("joe@boo.io".to_owned()).unwrap();
+   let email     = Secret::new("joe@boo.io".to_owned());
+   let email     = Email::parse(email).unwrap();
    let password  = Secret::new("Horse1234!".to_owned());
    let password  = Password::parse(password).unwrap();
    
@@ -61,14 +63,15 @@ async fn test_validate_user() {
    let _         = store.add_user(user).await;
    let result    = store.validate_user(&email, &password).await;
    match result {
-      Ok(())  => { println!("Validated user with email {}", email); }
+      Ok(())  => { println!("Validated user"); }
       Err(_)  => { panic!("User not found"); }
    }
 }
 
 async fn construct_store_with_test_user<'a>() -> (Email, HashmapUserStore) {
    let mut store = HashmapUserStore::default();
-   let email     = Email::parse("joe@boo.io".to_owned()).unwrap();
+   let email   = Secret::new("joe@boo.io".to_owned());
+   let email   = Email::parse(email).unwrap();
    let password  = Secret::new("Horse1234!".to_owned());
    let password  = Password::parse(password).unwrap();
    let user      = User::new(email.clone(), password, false);

@@ -3,7 +3,8 @@ use crate::domain::{Email, EmailError, Password, PasswordError, User};
 use crate::utils::hash_utils;
 use crate::utils::hash_utils::hash_password_async;
 use color_eyre::eyre::{eyre, Result};
-use secrecy::Secret;
+use log::debug;
+use secrecy::{ExposeSecret, Secret};
 use sqlx::PgPool;
 
 #[derive(Clone, Debug, sqlx::FromRow, serde::Deserialize, serde::Serialize)]
@@ -17,7 +18,8 @@ impl UserRecord {
 	pub fn into_user(self) -> Result<User, UserStoreError> {
 		let e_email  = |e: EmailError|    UserStoreError::UnexpectedError(eyre!(e));
 		let e_pword  = |e: PasswordError| UserStoreError::UnexpectedError(eyre!(e));
-		let email    = Email::parse(self.email).map_err(e_email)?;
+		let email    = Secret::new(self.email);
+		let email    = Email::parse(email).map_err(e_email)?;
 		let password = Secret::new(self.password_hash);
 		let password = Password::parse(password).map_err(e_pword)?;
 		let user     = User::new(email, password, self.requires_2fa);
@@ -42,7 +44,7 @@ impl UserStore for PostgresUserStore {
 		// Make sure we do not have this user in the database ...
 		let lookup = self.get_user(&user.email).await;
 		if lookup.is_ok() {
-			println!("UserStore.add_user({}): User exists: {:?}", user.email, lookup.unwrap());
+			debug!("UserStore.add_user: User already exists");
 			return Err(UserStoreError::UserAlreadyExists);
 		}
 
@@ -56,7 +58,7 @@ impl UserStore for PostgresUserStore {
 	        VALUES ($1, $2, $3)
 	        "#
 			)
-			.bind(&email)
+			.bind(&email.expose_secret())
 			.bind(hash)
 			.bind(user.requires_2fa)
 			.execute(&self.pool)
@@ -67,7 +69,7 @@ impl UserStore for PostgresUserStore {
 
 	#[tracing::instrument(name = "Retrieve user from PostgreSQL", skip_all)] // New!
 	async fn get_user(&self, email: &Email) -> Result<User, UserStoreError> {
-		let email  = email.get_email().to_owned();
+		let email  = email.expose_secret().to_owned();
 		let result = sqlx::query_as!(UserRecord, "SELECT email, password_hash, requires_2fa FROM users WHERE email = $1", email)
 			.fetch_optional(&self.pool)
 			.await.map_err(|e| UserStoreError::UnexpectedError(e.into()))?;

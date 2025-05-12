@@ -60,7 +60,8 @@ pub async fn login(
         Err(_) => return (jar, Err(AuthAPIError::InvalidCredentials)),
     };
 
-    let email = match Email::parse(request.email) {
+    let email = Secret::new(request.email);
+    let email = match Email::parse(email) {
         Ok(email) => email,
         Err(_) => return (jar, Err(AuthAPIError::InvalidCredentials)),
     };
@@ -79,10 +80,10 @@ pub async fn login(
 
     let user_store = state.user_store.read().await;
     if user_store.validate_user(&email, &password).await.is_err() {
-        println!("User Store:  validation failed");
+        debug!("User Store: validation failed");
         return (jar, Err(AuthAPIError::IncorrectCredentials));
     }
-    println!("User with email {} authenticated.", &email);
+    debug!("User authenticated.");
 
     let user = match user_store.get_user(&email).await {
         Ok(user) => user,

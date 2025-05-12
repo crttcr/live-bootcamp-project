@@ -19,9 +19,10 @@ impl EmailClient for MockEmailClient
 		subject:       &str,
 		content:       &str,
 	) -> Result<()> {
+		let email = recipient.expose_secret();
 		debug!(
 			"Sending email to {} with subject: {} and content: {}",
-			recipient.as_ref(),
+			email,
 			subject,
 			content
 		);

@@ -1,4 +1,5 @@
 use reqwest::Url;
+use secrecy::Secret;
 use auth_service::domain::Email;
 use auth_service::routes::TwoFactorAuthResponse;
 use auth_service::utils::constants::JWT_COOKIE_NAME;
@@ -123,7 +124,8 @@ pub async fn setup_2fa_login_started(app: &TestApp) -> (TestUser, TwoFAData) {
 /// Get the 2FA code tuple for a user
 /// (Use this in the arrange phase only, not act)
 pub async fn get_2fa_code_tuple(app: &TestApp, email: &str) -> (String, String) {
-	let email      = Email::parse(email.to_string()).unwrap();
+	let email      = Secret::new(email.to_string());
+	let email      = Email::parse(email).unwrap();
 	let code_tuple = app
 		.two_fa_code_store
 		.read()

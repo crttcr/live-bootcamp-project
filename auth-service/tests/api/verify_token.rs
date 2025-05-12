@@ -1,3 +1,4 @@
+use secrecy::Secret;
 use serde_json::json;
 use crate::helpers_harness::TestApp;
 use auth_service::domain::Email;
@@ -66,8 +67,9 @@ async fn should_return_401_if_token_is_banned() {
 
 #[tokio::test]
 async fn should_return_401_if_banned_token_crt() {
-    let mut app      = TestApp::new().await;
+    let mut app  = TestApp::new().await;
     let email    = get_random_email();
+    let email    = Secret::new(email);
     let email    = Email::parse(email).unwrap();
     let token    = generate_jwt_auth_token(&email).unwrap();
     println!("token: {}", token);

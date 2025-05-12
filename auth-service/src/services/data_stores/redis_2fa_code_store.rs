@@ -84,7 +84,7 @@ impl TwoFACodeStore for RedisTwoFACodeStore {
 #[derive(Serialize, Deserialize)]
 struct TwoFATuple(pub String, pub String);
 
-
 fn make_key(prefix: &str, email: &Email) -> String {
-	format!("{}:{}", prefix, email.as_ref())
+	let email_hash = email.hash_secret_twox128();
+	format!("{}:{}", prefix, email_hash)
 }

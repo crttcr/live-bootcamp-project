@@ -3,6 +3,7 @@ use axum::http::StatusCode;
 use axum::Json;
 use axum::response::IntoResponse;
 use axum_extra::extract::CookieJar;
+use secrecy::Secret;
 use serde::{Deserialize, Serialize};
 use tracing::debug;
 use crate::app_state::AppState;
@@ -35,14 +36,16 @@ pub async fn verify_2fa(
    Json(request): Json<Verify2FARequest>,
 ) -> Result<(CookieJar, impl IntoResponse), AuthAPIError>
 {
-   let email             = Email::parse(request.email)                    .map_err(|_| AuthAPIError::InvalidCredentials)?;
-   let login_attempt_id  = LoginAttemptId::parse(request.login_attempt_id).map_err(|_| AuthAPIError::InvalidCredentials)?;
-   let two_fa_code       = TwoFACode::parse(request.code)                 .map_err(|_| AuthAPIError::InvalidCredentials)?;
-   let tuple             = get_tuple_from_store(&state, &email).await?;
+   let email       = Secret::new(request.email);
+   let email       = Email::parse(email)              .map_err(|_| AuthAPIError::InvalidCredentials)?;
+   let attempt_id  = request.login_attempt_id;
+   let attempt_id  = LoginAttemptId::parse(attempt_id).map_err(|_| AuthAPIError::InvalidCredentials)?;
+   let two_fa_code = TwoFACode::parse(request.code)   .map_err(|_| AuthAPIError::InvalidCredentials)?;
+   let tuple       = get_tuple_from_store(&state, &email).await?;
 
    // Verify the user's post contains the information we have in the store.
-   if tuple.0 != login_attempt_id { return Err(AuthAPIError::IncorrectCredentials); }
-   if tuple.1 != two_fa_code      { return Err(AuthAPIError::IncorrectCredentials); }
+   if tuple.0 != attempt_id  { return Err(AuthAPIError::IncorrectCredentials); }
+   if tuple.1 != two_fa_code { return Err(AuthAPIError::IncorrectCredentials); }
 
    debug!("Credentials verified");
    

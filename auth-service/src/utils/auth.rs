@@ -58,7 +58,7 @@ pub fn generate_jwt_auth_token(email: &Email) -> Result<String> {
 		.timestamp();
 
 	let exp    = exp as usize;                              // Cast exp to usize, (what Claims expects)
-	let sub    = email.as_ref().to_owned();
+	let sub    = email.expose_secret().to_owned();
 	let claims = Claims {sub, exp};
 	create_token(&claims)
 }

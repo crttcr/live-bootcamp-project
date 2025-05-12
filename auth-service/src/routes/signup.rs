@@ -29,12 +29,13 @@ pub async fn signup(
     State(state):   State<AppState>,
     Json(request):  Json<SignupRequest>,
     ) -> impl IntoResponse {
-    let email    = Email::parse(   request.email   ).map_err(|_| AuthAPIError::InvalidCredentials)?;
+    let email    = Secret::new(request.email);
+    let email    = Email::parse(email)              .map_err(|_| AuthAPIError::InvalidCredentials)?;
     let password = Password::parse(request.password).map_err(|_| AuthAPIError::InvalidCredentials)?;
     
     let mut user_store = state.user_store.write().await;
     if user_store.get_user(&email).await.is_ok() { 
-        warn!("User with email {} already exists.", &email);
+        warn!("User with email already exists.");
         return Err(AuthAPIError::UserAlreadyExists) 
     }
 

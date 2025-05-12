@@ -1,11 +1,11 @@
-use crate::helpers_harness::get_random_email;
+use crate::helpers_arrange::{add_token_to_cookie_jar, setup_logged_in_user, TestUser};
+use crate::helpers_assert::assert_status;
 use crate::helpers_harness::TestApp;
 use auth_service::domain::Email;
 use auth_service::utils::auth::generate_auth_cookie;
 use auth_service::utils::constants::JWT_COOKIE_NAME;
 use reqwest::Url;
-use crate::helpers_arrange::{add_token_to_cookie_jar, setup_logged_in_user};
-use crate::helpers_assert::assert_status;
+use secrecy::Secret;
 
 #[tokio::test]
 async fn should_return_200_if_valid_jwt_cookie() {
@@ -64,7 +64,8 @@ async fn should_return_400_if_logout_called_twice_in_a_row() {
 #[tokio::test]
 async fn should_return_400_if_logout_called_twice_in_a_row_crt() {
     let mut app     = TestApp::new().await;
-    let email       = get_random_email().to_owned();
+    let user        = TestUser::new();
+    let email       = Secret::new(user.email);
     let email       = Email::parse(email).unwrap();
     let good_cookie = generate_auth_cookie(&email).unwrap();
     let cookie_string = good_cookie.to_string();
