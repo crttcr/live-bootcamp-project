@@ -11,10 +11,17 @@ pub const BANNED_TOKEN_KEY_PREFIX: &str = "2FA:Tokens:Banned";
 pub const TOKEN_TTL_SECONDS:       i64  = 600; // 10 minutes
 
 lazy_static! {
-	pub static ref JWT_SECRET:        Secret<String> = set_token();
-//	pub static ref POSTGRES_PASSWORD: String         = set_pg_password();
-	pub static ref DATABASE_URL:      Secret<String> = set_db_url();
-	pub static ref REDIS_HOST_NAME:   String         = set_redis_host();
+	pub static ref JWT_SECRET:          Secret<String> = set_token();
+	pub static ref DATABASE_URL:        Secret<String> = set_db_url();
+//	pub static ref POSTGRES_PASSWORD: String           = set_pg_password();
+	pub static ref POSTMARK_AUTH_TOKEN: Secret<String> = set_postmark_auth_token();	
+	pub static ref REDIS_HOST_NAME:     String         = set_redis_host();
+}
+
+fn set_postmark_auth_token() -> Secret<String> {
+	dotenv().ok();
+	let token = std_env::var("POSTMARK_AUTH_TOKEN").expect("POSTMARK_AUTH_TOKEN not set");
+	Secret::new(token)
 }
 
 /*
@@ -59,17 +66,29 @@ fn set_redis_host() -> String {
 pub mod env {
 	pub const DATABASE_URL_ENV_VAR:    &str = "DATABASE_URL";
 	pub const JWT_SECRENT_ENV_VAR:     &str = "JWT_SECRET";
+	pub const POSTMARK_AUTH_TOKEN:     &str = "POSTMARK_AUTH_TOKEN";
 	pub const REDIS_HOST_NAME_ENV_VAR: &str = "REDIS_HOST_NAME";
 }
 
 pub mod prod {
-	pub const APP_ADDRESS:   &str = "0.0.0.0:3000";
-	pub const URI_APP:       &str = "https://161.35.106.43:8000";
-	pub const URI_AUTH:      &str = "https://161.35.106.43:3000";
+	pub const APP_ADDRESS:   &str    = "0.0.0.0:3000";
+	pub const URI_APP:       &str    = "https://161.35.106.43:8000";
+	pub const URI_AUTH:      &str    = "https://161.35.106.43:3000";
+	pub mod email_client {
+		use std::time::Duration;
+		pub const BASE_URL:  &str     = "https://api.postmarkapp.com/email";
+		pub const SENDER:    &str     = "crt@rivvit.io";
+		pub const TIMEOUT:   Duration = Duration::from_secs(10);
+	}
 }
 
 pub mod test {
-	pub const APP_ADDRESS:   &str = "127.0.0.1:0";
+	pub const APP_ADDRESS: &str = "127.0.0.1:0";
 	pub const URI_APP:       &str = "https://localhost:8000";
 	pub const URI_AUTH:      &str = "https://localhost:3000";
+	pub mod email_client {
+		use std::time::Duration;
+		pub const SENDER: &str = "test@email.com";
+		pub const TIMEOUT: Duration = Duration::from_millis(200);
+	}
 }
