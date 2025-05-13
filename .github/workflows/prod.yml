@@ -24,7 +24,7 @@ jobs:
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
           POSTGRES_DB: postgres
         ports:                             # When mapping ports w/ the ports keyword, GitHub uses the --publish command
-          - 5432:5432                      # to publish container ports to the host. Opens tcp port 5432 on host + container
+          - ${{vars.POSTGRES_PORT}}:5432   # Pub container ports to host. Opens tcp port 5432 on host + container
       redis:
         image: redis:7.0-alpine
         ports:
@@ -57,8 +57,8 @@ jobs:
     - name: Build and test auth-service code
       working-directory: ./auth-service
       run: |
-        export JWT_SECRET=secret
-        export DATABASE_URL=postgres://postgres:${{secrets.POSTGRES_PASSWORD}}@localhost:5432
+        export JWT_SECRET=${{secrets.JWT_SECRET}}
+        export DATABASE_URL=postgres://postgres:${{secrets.POSTGRES_PASSWORD}}@localhost:${{vars.POSTGRES_PORT}}
         cargo build --verbose
         cargo test  --verbose
 
@@ -110,9 +110,11 @@ jobs:
         password: ${{ secrets.DROPLET_PASSWORD }}
         script: |
           cd ~
-          export AUTH_SERVICE_IP=${{  vars.DROPLET_IP           }}
-          export JWT_SECRET=${{       secrets.JWT_SECRET        }}
-          export POSTGRES_PASSWORD=${{secrets.POSTGRES_PASSWORD }}
+          export AUTH_SERVICE_IP=${{   vars.DROPLET_IP              }}
+          export JWT_SECRET=${{        secrets.JWT_SECRET           }}
+          export POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD    }}
+          export POSTGRES_PORT=${{     vars.POSTGRES_PORT           }}
+          export POSTMARK_AUTH_TOKEN=${{secrets.POSTMARK_AUTH_TOKEN }}
           docker compose down
           docker compose pull
           docker compose up -d
