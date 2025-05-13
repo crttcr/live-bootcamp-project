@@ -59,11 +59,13 @@ impl EmailClient for PostmarkEmailClient
 		};
 
 		let auth_token = self.authorization_token.expose_secret();
-		let request = self.http_client
+		let request    = self.http_client
 			.post(url)
 			.header(POSTMARK_AUTH_HEADER, auth_token)
 			.json(&body);
 
+		// TODO: Remove this debug statement before production
+		tracing::debug!("Sending email to: {}", recipient.expose_secret());
 		request.send().await?.error_for_status()?;             // Send the request and handle the response
 		Ok(())
 	}

@@ -52,9 +52,6 @@ pub async fn login(
     Json(request):  Json<LoginRequest>,
     ) -> (CookieJar, Result<impl IntoResponse, AuthAPIError>) {
     debug!("Received login request: {:?}", request);
-    println!("Received login request: {:?}", request);
-    debug!("Sending password: {}", request.password.expose_secret());
-    println!("Sending password: {}", request.password.expose_secret());
     let password = match Password::parse(request.password) {
         Ok(password) => password,
         Err(_) => return (jar, Err(AuthAPIError::InvalidCredentials)),

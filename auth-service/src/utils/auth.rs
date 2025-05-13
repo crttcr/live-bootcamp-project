@@ -2,7 +2,7 @@ use super::constants::{JWT_COOKIE_NAME, JWT_SECRET, TOKEN_TTL_SECONDS};
 use crate::app_state::TokenStoreType;
 use crate::domain::email::Email;
 use axum_extra::extract::cookie::{Cookie, SameSite};
-use chrono::Utc;
+use chrono::{Duration, Utc};
 use color_eyre::eyre::{eyre, Context, Result};
 use color_eyre::Report;
 use jsonwebtoken;
@@ -58,6 +58,8 @@ pub fn generate_jwt_auth_token(email: &Email) -> Result<String> {
 		.ok_or(GenerateTokenError::UnexpectedError(eyre!("Bad time")))?
 		.timestamp();
 
+	let exp = (Utc::now() + Duration::seconds(3600)).timestamp(); // expires in 1 hour
+	
 	let exp    = exp as usize;                              // Cast exp to usize, (what Claims expects)
 	let sub    = email.expose_secret().to_owned();
 	let claims = Claims {sub, exp};
@@ -77,11 +79,16 @@ pub async fn validate_token(
 		_    => {}
 	}
 
-	let bytes  = JWT_SECRET.expose_secret().as_bytes();
+	debug!("Token is not banned, decoding it");
+	let bytes      = JWT_SECRET.expose_secret().as_bytes();
 	let key        = DecodingKey::from_secret(bytes);
 	let validation = &Validation::default();
 	let token_data = token.expose_secret();
 	let data       = jsonwebtoken::decode::<Claims>(token_data, &key, &validation);
+	if let Err(e) = data {
+		warn!("Failed to decode token: {:?}", e);
+		return Err(eyre!("Failed to decode token"));
+	}
 	let claims     = data.map(|v| v.claims).wrap_err("Failed to decode token");
 	debug!("\t{:?}", claims);
 	claims

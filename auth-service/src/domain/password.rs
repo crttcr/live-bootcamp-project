@@ -1,7 +1,6 @@
 use color_eyre::eyre::Result;
 use secrecy::{ExposeSecret, Secret};
 use thiserror::Error;
-use log::debug;
 
 #[derive(Clone, Debug, PartialEq, Eq, Error)]
 pub enum PasswordError {
@@ -18,10 +17,8 @@ pub struct Password(Secret<String>);
 
 impl Password {
    pub fn parse(s: Secret<String>) -> Result<Self, PasswordError> {
-      debug!("Parse   password: {}", s.expose_secret());
-      println!("Parse   password: {}", s.expose_secret());
       let _ = Password::is_acceptable(&s)?;
-//    let _ = Password::is_secure(    &s)?;
+//    let _ = Password::is_secure(    &s)?;      // Commented out for development/testing
       Ok(Self(s))
    }
 
