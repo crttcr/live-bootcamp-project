@@ -44,8 +44,8 @@ pub async fn verify_2fa(
    let tuple       = get_tuple_from_store(&state, &email).await?;
 
    // Verify the user's post contains the information we have in the store.
-   if tuple.0 != attempt_id  { return Err(AuthAPIError::IncorrectCredentials); }
-   if tuple.1 != two_fa_code { return Err(AuthAPIError::IncorrectCredentials); }
+   if !attempt_id .is_match(&tuple.0)  { return Err(AuthAPIError::IncorrectCredentials); }
+   if !two_fa_code.is_match(&tuple.1)  { return Err(AuthAPIError::IncorrectCredentials); }
 
    debug!("Credentials verified");
    

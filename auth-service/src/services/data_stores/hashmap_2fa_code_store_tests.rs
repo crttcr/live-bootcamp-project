@@ -30,7 +30,7 @@ async fn lookup_after_adding_code_returns_code() {
 	println!("{:?}", returned);
 	assert!(returned.is_ok());
 	let returned = returned.unwrap();
-	assert_eq!(returned.0,   id);
+	assert!(id == returned.0);
 	assert_eq!(returned.1, code);
 }
 

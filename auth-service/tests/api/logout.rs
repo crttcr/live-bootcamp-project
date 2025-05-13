@@ -13,6 +13,7 @@ async fn should_return_200_if_valid_jwt_cookie() {
     let (_user, token) = setup_logged_in_user(&app).await;
     let response       = app.post_logout().await;                  // Act
     {
+        let token       = Secret::new(token);
         let token_store = app.banned_tokens.read().await;
         assert_status(&response, 200, None);
         assert!(token_store.contains_token(&token).await);

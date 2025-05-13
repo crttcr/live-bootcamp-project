@@ -1,9 +1,9 @@
-use reqwest::Url;
-use secrecy::Secret;
+use crate::helpers_harness::{get_random_email, TestApp};
 use auth_service::domain::Email;
 use auth_service::routes::TwoFactorAuthResponse;
 use auth_service::utils::constants::JWT_COOKIE_NAME;
-use crate::helpers_harness::{get_random_email, TestApp};
+use reqwest::Url;
+use secrecy::Secret;
 
 /// Represents a test user's credentials
 #[derive(Clone)]

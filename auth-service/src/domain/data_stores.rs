@@ -1,17 +1,18 @@
 use super::email::Email;
 use super::password::Password;
 use super::user::User;
-use color_eyre::eyre::{eyre, Report, Result, Context};
+use color_eyre::eyre::{eyre, Context, Report, Result};
+use secrecy::{Secret};
 use serde::{Deserialize, Serialize};
-use std::fmt;
 use thiserror::Error;
+use std::fmt;
 
 #[derive(Debug, Error)]
 pub enum UserStoreError
 {
     #[error("Invalid credentials")]
     InvalidCredentials,
-    #[error("Unexpected error")]   
+    #[error("Unexpected error")]
     UnexpectedError(#[source] Report),
     #[error("User already exists")]
     UserAlreadyExists,
@@ -36,7 +37,7 @@ pub enum TokenStoreError
 {
     #[error("Token is blank")]
     BlankToken,
-    #[error("Unexpected error")]  
+    #[error("Unexpected error")]
     UnexpectedError(#[source] Report),
 }
 
@@ -49,6 +50,7 @@ impl PartialEq for TokenStoreError {
         )
     }
 }
+
 #[derive(Debug, Error)]
 pub enum TwoFACodeStoreError {
     #[error("Invalid code")]
@@ -78,14 +80,14 @@ pub trait UserStore
 #[async_trait::async_trait]
 pub trait TokenStore
 {
-    async fn add_token(&mut self, token: String)    -> Result<(),   TokenStoreError>;
-    async fn clear(&mut self)                       -> Result<(),   TokenStoreError>;
-    async fn count(&self)                           -> Result<u64,  TokenStoreError>;
-    async fn delete_token(&mut self, token: &str)   -> Result<(),   TokenStoreError>;
-    async fn contains_token(&self, token: &str)     -> bool;
+    async fn add_token(&mut self, token: &Secret<String>)    -> Result<(),   TokenStoreError>;
+    async fn clear(&mut self)                                -> Result<(),   TokenStoreError>;
+    async fn count(&self)                                    -> Result<u64,  TokenStoreError>;
+    async fn delete_token(&mut self, token: &Secret<String>) -> Result<(),   TokenStoreError>;
+    async fn contains_token(&self, token: &Secret<String>)   -> bool;
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
 pub struct LoginAttemptId(String);
 
 impl LoginAttemptId {
@@ -99,9 +101,13 @@ impl LoginAttemptId {
         let id = id.to_string();
         Ok(Self(id))
     }
-    
-    pub fn is_match(&self, v: &str) -> bool {
-        v == self.0
+
+    pub fn is_match(&self, other: &LoginAttemptId) -> bool {
+        self.0 == other.0
+    }
+
+    pub fn is_match_str(&self, v: &str) -> bool {
+        self.0 == v
     }
 }
 
@@ -109,22 +115,21 @@ impl Default for LoginAttemptId {
     fn default() -> Self { LoginAttemptId::new() }
 }
 
-impl AsRef<str> for LoginAttemptId {
-    fn as_ref(&self) -> &str { &self.0 }
+impl AsRef<String> for LoginAttemptId {
+    fn as_ref(&self) -> &String { &self.0 }
 }
 
 impl fmt::Display for LoginAttemptId {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0)
     }
 }
 
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 pub struct TwoFACode(String);
 
-impl AsRef<str> for TwoFACode {
-    fn as_ref(&self) -> &str { &self.0 }
+impl AsRef<String> for TwoFACode {
+    fn as_ref(&self) -> &String { &self.0 }
 }
 
 impl TwoFACode {
@@ -141,17 +146,20 @@ impl TwoFACode {
         if code.len() != 6                         { return Err(eyre!(format!("Code must be exactly 6 digits. Value({})", code))); }
         Ok(Self(code))
     }
-    
-    pub fn is_match(&self, v: &str) -> bool {
-        v == self.0
+    pub fn is_match(&self, other: &TwoFACode) -> bool {
+        self.0 == other.0
+    }
+    pub fn is_match_str(&self, v: &str) -> bool {
+        self.0 == v
     }
 }
 
 impl Default for TwoFACode {
     fn default() -> Self { TwoFACode::new() }
 }
+
 impl fmt::Display for TwoFACode {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0)
     }
 }

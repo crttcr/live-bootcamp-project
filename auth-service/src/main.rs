@@ -47,8 +47,7 @@ async fn configure_postgresql() -> PgPool
 {
 	let e_pool    = "Failed to create Postgres connection pool";
 	let e_migrate = "Failed to run migrations";
-	let url       = &DATABASE_URL;
-	let pg_pool   = create_postgres_pool(url).await.expect(e_pool);
+	let pg_pool   = create_postgres_pool(&DATABASE_URL).await.expect(e_pool);
 	sqlx::migrate!().run(&pg_pool).await.expect(e_migrate);
 	pg_pool
 }

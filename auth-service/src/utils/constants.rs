@@ -1,6 +1,8 @@
 use dotenvy::dotenv;
 use lazy_static::lazy_static;
 use std::env as std_env;
+use log::warn;
+use secrecy::Secret;
 
 pub const DEFAULT_REDIS_HOSTNAME:  &str = "127.0.0.1";
 pub const JWT_COOKIE_NAME:         &str = "jwt";
@@ -9,10 +11,10 @@ pub const BANNED_TOKEN_KEY_PREFIX: &str = "2FA:Tokens:Banned";
 pub const TOKEN_TTL_SECONDS:       i64  = 600; // 10 minutes
 
 lazy_static! {
-	pub static ref JWT_SECRET:        String = set_token();
-//	pub static ref POSTGRES_PASSWORD: String = set_pg_password();
-	pub static ref DATABASE_URL:      String = set_db_url();
-	pub static ref REDIS_HOST_NAME:   String = set_redis_host();
+	pub static ref JWT_SECRET:        Secret<String> = set_token();
+//	pub static ref POSTGRES_PASSWORD: String         = set_pg_password();
+	pub static ref DATABASE_URL:      Secret<String> = set_db_url();
+	pub static ref REDIS_HOST_NAME:   String         = set_redis_host();
 }
 
 /*
@@ -29,23 +31,23 @@ fn set_pg_password() -> String {
 }
 */
 
-fn set_token() -> String {
+fn set_token() -> Secret<String> {
 	dotenv().ok();
-	let secret = std_env::var("JWT_SECRET").expect("JWT_SECRET not set");
-	if secret.is_empty() {
+	let jwt_secret = std_env::var("JWT_SECRET").expect("JWT_SECRET not set");
+	if jwt_secret.is_empty() {
 		panic!("JWT_SECRET must not be empty. Set it in the .env file or in environment variables.");
 	}
-	if secret.len() < 16 {
-		eprintln!("JWT_SECRET is too short. It should be at least 16 characters long.")
+	if jwt_secret.len() < 16 {
+		warn!("JWT_SECRET is too short. It should be at least 16 characters long.")
 	}
-	secret
+	Secret::new(jwt_secret)
 }
 
-fn set_db_url() -> String {
+fn set_db_url() -> Secret<String> {
 	dotenv().ok();
 	println!("CWD: {:?}", std::env::current_dir());	
 	let url = std_env::var(env::DATABASE_URL_ENV_VAR).expect("DATABASE_URL not set");
-	url
+	Secret::new(url)
 }
 
 fn set_redis_host() -> String {

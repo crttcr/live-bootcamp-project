@@ -9,6 +9,7 @@ use axum::serve::Serve;
 use axum::Router;
 use redis;
 use redis::RedisResult;
+use secrecy::{ExposeSecret, Secret};
 use sqlx::PgPool;
 use sqlx::postgres::PgPoolOptions;
 use tower_http::cors::CorsLayer;
@@ -76,7 +77,8 @@ impl Application {
     }
 }
 
-pub async fn create_postgres_pool(url: &str) -> Result<PgPool, sqlx::Error> {
+pub async fn create_postgres_pool(url: &Secret<String>) -> Result<PgPool, sqlx::Error> {
+    let url    = url.expose_secret();
     let result = PgPoolOptions::new().max_connections(3).connect(url).await;
     info!("PostgreSQL pool created: {:?}", result);
     result

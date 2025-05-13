@@ -7,7 +7,8 @@ use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum_extra::extract::{cookie, CookieJar};
 use color_eyre::eyre::eyre;
-use tracing::{debug, warn};
+use secrecy::Secret;
+use tracing::warn;
 
 #[tracing::instrument(name = "logout", skip(state))]
 pub async fn logout(
@@ -21,7 +22,6 @@ pub async fn logout(
    
    // Validate token
    let token     = cookie.value();
-   debug!("Token: {}", token);
    let store     = state.banned_tokens.clone();
    if let Err(_) = validate_token(token, store).await {
 		warn!("Token is invalid.");
@@ -29,9 +29,10 @@ pub async fn logout(
    }
    
    // Add token to banned tokens store
+   let token = Secret::new(token.to_owned());
    if state.banned_tokens
       .write().await
-      .add_token(token.to_owned()).await
+      .add_token(&token).await
       .is_err() {
       return Err(AuthAPIError::UnexpectedError(eyre!("Failed to add token to banned tokens store.")));
    }

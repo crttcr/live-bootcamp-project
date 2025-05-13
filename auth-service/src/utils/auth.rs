@@ -8,6 +8,7 @@ use color_eyre::Report;
 use jsonwebtoken;
 use jsonwebtoken::errors::Error;
 use jsonwebtoken::{DecodingKey, EncodingKey, Validation};
+use secrecy::{ExposeSecret, Secret};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use tracing::{debug, warn};
@@ -70,18 +71,17 @@ pub async fn validate_token(
 	token:           &str,
 	banned_tokens:   TokenStoreType,
 	) -> Result<Claims> {
-	debug!("Validating token\n\t{:?}", token);
-	match banned_tokens.read().await.contains_token(token).await {
-		true => {
-			warn!("Token is banned: {:?}", token);
-			return Err(eyre!("Token is banned"))
-		},
-		_ => {}
+	let token = Secret::new(token.to_owned());
+	match banned_tokens.read().await.contains_token(&token).await {
+		true => { return Err(eyre!("Token is banned")) },
+		_    => {}
 	}
 
-	let key        = DecodingKey::from_secret(JWT_SECRET.as_bytes());
+	let bytes  = JWT_SECRET.expose_secret().as_bytes();
+	let key        = DecodingKey::from_secret(bytes);
 	let validation = &Validation::default();
-	let data       = jsonwebtoken::decode::<Claims>(token, &key, &validation);
+	let token_data = token.expose_secret();
+	let data       = jsonwebtoken::decode::<Claims>(token_data, &key, &validation);
 	let claims     = data.map(|v| v.claims).wrap_err("Failed to decode token");
 	debug!("\t{:?}", claims);
 	claims
@@ -91,9 +91,10 @@ pub async fn validate_token(
 //
 #[tracing::instrument(name = "encode claims into token", skip_all)]
 fn create_token(claims: &Claims) -> Result<String> {
+	let bytes  = JWT_SECRET.expose_secret().as_bytes();
 	jsonwebtoken::encode(
 		&jsonwebtoken::Header::default(),
 		&claims,
-		&EncodingKey::from_secret(JWT_SECRET.as_bytes()),
+		&EncodingKey::from_secret(bytes),
 	).wrap_err("Failed to create token")
 }

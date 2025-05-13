@@ -7,6 +7,7 @@ use redis::Commands;
 use redis::Connection;
 use std::convert::TryInto;
 use std::sync::Arc;
+use secrecy::{ExposeSecret, Secret};
 use tokio::sync::RwLock;
 use tracing::{debug, warn};
 
@@ -25,8 +26,9 @@ impl RedisBannedTokenStore {
 #[async_trait::async_trait]
 impl TokenStore for RedisBannedTokenStore {
     #[tracing::instrument(name = "add token", skip_all)]
-    async fn add_token(&mut self, token: String) -> Result<(), TokenStoreError> {
-        let key      = make_key(BANNED_TOKEN_KEY_PREFIX, token.as_str());
+    async fn add_token(&mut self, token: &Secret<String>) -> Result<(), TokenStoreError> {
+        let str  = token.expose_secret().as_str();
+        let key  = make_key(BANNED_TOKEN_KEY_PREFIX, str);
         debug!(?key, "Adding key in Redis");
         let ttl: u64 = BANNED_TOKEN_TTL_SECONDS.try_into().unwrap_or(60 * 60 * 2);
         let _: ()    = self.cx.write().await
@@ -60,15 +62,17 @@ impl TokenStore for RedisBannedTokenStore {
     }
 
     #[tracing::instrument(name = "contains token", skip_all)]   
-    async fn contains_token(&self, token: &str) -> bool {
-        let key = make_key(BANNED_TOKEN_KEY_PREFIX, token);
+    async fn contains_token(&self, token: &Secret<String>) -> bool {
+        let str = token.expose_secret().as_str();
+        let key = make_key(BANNED_TOKEN_KEY_PREFIX, str);
         debug!(?key, "Checking key in Redis");
         self.cx.write().await.exists(key).unwrap_or_else(|_| false)
     }
 
     #[tracing::instrument(name = "delete token", skip_all)]
-    async fn delete_token(&mut self, token: &str) -> Result<(), TokenStoreError> {
-        let key   = make_key(BANNED_TOKEN_KEY_PREFIX, token);
+    async fn delete_token(&mut self, token: &Secret<String>) -> Result<(), TokenStoreError> {
+        let str = token.expose_secret().as_str();
+        let key = make_key(BANNED_TOKEN_KEY_PREFIX, str);
         debug!(?key, "Deleting key in Redis");
         let _: () = self.cx
             .write().await
