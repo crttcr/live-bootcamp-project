@@ -2,6 +2,7 @@ use crate::app_state::AppState;
 use crate::domain::email::Email;
 use crate::domain::error::AuthAPIError;
 use crate::domain::password::Password;
+use crate::domain::{LoginAttemptId, TwoFACode};
 use crate::routes::LoginResponse::TwoFactorAuth;
 use crate::utils::auth::generate_auth_cookie;
 use axum::extract::State;
@@ -9,13 +10,14 @@ use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::Json;
 use axum_extra::extract::CookieJar;
+use secrecy::{ExposeSecret, Secret};
 use serde::{Deserialize, Serialize};
-use crate::domain::{LoginAttemptId, TwoFACode};
+use tracing::debug;
 
-#[derive(Deserialize, Debug, Serialize)]
+#[derive(Deserialize, Debug)]
 pub struct LoginRequest {
     pub email:          String,
-    pub password:       String,
+    pub password:       Secret<String>,
 }
 
 // The login route can return 2 possible success responses.
@@ -43,18 +45,20 @@ impl TwoFactorAuthResponse {
     }
 }
 
+#[tracing::instrument(name = "login handler", skip_all)]
 pub async fn login(
     State(state):   State<AppState>,
     jar:            CookieJar,
     Json(request):  Json<LoginRequest>,
     ) -> (CookieJar, Result<impl IntoResponse, AuthAPIError>) {
-    println!("Received login request: {:?}", request);
-    let password = match Password::parse(&request.password) {
+    debug!("Received login request: {:?}", request);
+    let password = match Password::parse(request.password) {
         Ok(password) => password,
         Err(_) => return (jar, Err(AuthAPIError::InvalidCredentials)),
     };
 
-    let email = match Email::parse(request.email) {
+    let email = Secret::new(request.email);
+    let email = match Email::parse(email) {
         Ok(email) => email,
         Err(_) => return (jar, Err(AuthAPIError::InvalidCredentials)),
     };
@@ -73,10 +77,10 @@ pub async fn login(
 
     let user_store = state.user_store.read().await;
     if user_store.validate_user(&email, &password).await.is_err() {
-        println!("User validation failed");
+        debug!("User Store: validation failed");
         return (jar, Err(AuthAPIError::IncorrectCredentials));
     }
-    println!("User with email {} authenticated.", &email);
+    debug!("User authenticated.");
 
     let user = match user_store.get_user(&email).await {
         Ok(user) => user,
@@ -85,7 +89,7 @@ pub async fn login(
     println!("User acquired.");
     let auth_cookie = match generate_auth_cookie(&user.email) {
         Ok(cookie) => cookie,
-        Err(_)     => return (jar, Err(AuthAPIError::UnexpectedError)),
+        Err(e)     => return (jar, Err(AuthAPIError::UnexpectedError(e.into()))),
     };
 
     println!("Cookie generated: {}", auth_cookie.value());
@@ -98,6 +102,7 @@ pub async fn login(
     }
 }
 
+#[tracing::instrument(name = "handle non 2fa", skip_all)]
 async fn handle_no_2fa(email: &Email, jar: CookieJar) ->
 (
     CookieJar,
@@ -106,7 +111,7 @@ async fn handle_no_2fa(email: &Email, jar: CookieJar) ->
 {
     let auth_cookie = match generate_auth_cookie(email) {
         Ok(cookie) => cookie,
-        Err(_)     => return (jar, Err(AuthAPIError::UnexpectedError)),
+        Err(e)     => return (jar, Err(AuthAPIError::UnexpectedError(e))),
     };
 
     println!("Updating cookie jar");
@@ -115,6 +120,7 @@ async fn handle_no_2fa(email: &Email, jar: CookieJar) ->
     (cookies, Ok((StatusCode::OK, body)))
 }
 
+#[tracing::instrument(name = "handle 2fa", skip_all)]
 async fn handle_2fa(email: &Email, state: &AppState, jar: CookieJar) ->
 (
     CookieJar,
@@ -123,7 +129,7 @@ async fn handle_2fa(email: &Email, state: &AppState, jar: CookieJar) ->
 {
     let store_result = write_2fa_details_into_code_store(state, email).await;
     match store_result {
-        Err(_) => (jar, Err(AuthAPIError::UnexpectedError)),
+        Err(e) => (jar, Err(AuthAPIError::UnexpectedError(e.into()))),
         Ok((id, code)) => {
             let cookies    = jar;
             let emailer    = state.email_client.write().await;
@@ -131,7 +137,7 @@ async fn handle_2fa(email: &Email, state: &AppState, jar: CookieJar) ->
             let content    = format!("Code [{}], Login Attempt ID: {}\n", id, code);
             match emailer.send_email(email, subject, content.as_ref()).await {
                 Ok(_) => {},
-                Err(_) => return (cookies, Err(AuthAPIError::UnexpectedError)),
+                Err(e) => return (cookies, Err(AuthAPIError::UnexpectedError(e))),
             }
 
             let response         = TwoFactorAuthResponse::new(id);
@@ -145,13 +151,14 @@ async fn handle_2fa(email: &Email, state: &AppState, jar: CookieJar) ->
 // Helper function ensures that the write lock is dropped as soon as 
 // the update is complete.
 //
+#[tracing::instrument(name = "write 2fa to code_store", skip_all)]
 async fn write_2fa_details_into_code_store(state: &AppState, email: &Email) -> Result<(LoginAttemptId, TwoFACode), AuthAPIError> {
     let code             = TwoFACode::new();
     let login_attempt_id = LoginAttemptId::new();
     let mut store        = state.two_fa_code_store.write().await;
     match store.add_code(email.clone(), login_attempt_id.clone(), code.clone()).await {
         Ok(_)  => Ok((login_attempt_id, code)),
-        Err(_) => Err(AuthAPIError::UnexpectedError),
+        Err(e) => Err(AuthAPIError::UnexpectedError(e.into())),
 
     }
 }

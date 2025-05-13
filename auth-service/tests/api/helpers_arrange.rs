@@ -1,8 +1,9 @@
-use reqwest::Url;
+use crate::helpers_harness::{get_random_email, TestApp};
 use auth_service::domain::Email;
 use auth_service::routes::TwoFactorAuthResponse;
 use auth_service::utils::constants::JWT_COOKIE_NAME;
-use crate::helpers_harness::{get_random_email, TestApp};
+use reqwest::Url;
+use secrecy::Secret;
 
 /// Represents a test user's credentials
 #[derive(Clone)]
@@ -29,12 +30,6 @@ impl TestUser {
 		Self::with_attributes(None, None, true)
 	}
 
-	/*
-	pub fn with_email(email: &str) -> Self {
-		Self::with_attributes(Some(email), None, true)
-	}
-	*/
-
 	/// Get a signup JSON payload for this user
 	pub fn signup_payload(&self) -> serde_json::Value {
 		serde_json::json!({
@@ -47,7 +42,7 @@ impl TestUser {
 	/// Get a login JSON payload for this user
 	pub fn login_payload(&self) -> serde_json::Value {
 		serde_json::json!({
-            "email": self.email,
+            "email":    self.email,
             "password": self.password,
         })
 	}
@@ -129,7 +124,8 @@ pub async fn setup_2fa_login_started(app: &TestApp) -> (TestUser, TwoFAData) {
 /// Get the 2FA code tuple for a user
 /// (Use this in the arrange phase only, not act)
 pub async fn get_2fa_code_tuple(app: &TestApp, email: &str) -> (String, String) {
-	let email      = Email::parse(email.to_string()).unwrap();
+	let email      = Secret::new(email.to_string());
+	let email      = Email::parse(email).unwrap();
 	let code_tuple = app
 		.two_fa_code_store
 		.read()

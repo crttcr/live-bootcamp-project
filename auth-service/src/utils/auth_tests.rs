@@ -5,6 +5,7 @@ use crate::services::data_stores::hashset_token_store::HashSetTokenStore;
 use crate::utils::auth::*;
 use crate::utils::constants::*;
 use std::sync::Arc;
+use secrecy::Secret;
 use tokio::sync::RwLock;
 
 fn assert_basic_cookie_properties(c: &Cookie) {
@@ -16,33 +17,25 @@ fn assert_basic_cookie_properties(c: &Cookie) {
 
 #[tokio::test]
 async fn test_generate_auth_cookie() {
-	let email  = Email::parse("test@example.com".to_owned()).unwrap();
+	let email   = Secret::new("test@example.com".to_owned());
+	let email  = Email::parse(email).unwrap();
 	let cookie = generate_auth_cookie(&email).unwrap();
 	assert_basic_cookie_properties(&cookie);
 	assert_eq!(cookie.value().split('.').count(), 3);
 }
 
-// Test commented out because this function was hoisted into generate_auth_cookie()
-/*
-#[tokio::test]
-async fn test_create_auth_cookie() {
-	let token  = "test_token".to_owned();
-	let cookie = create_auth_cookie(token.clone());
-	assert_basic_cookie_properties(&cookie);
-	assert_eq!(cookie.value(), token);
-}
-*/
-
 #[tokio::test]
 async fn test_generate_auth_token_result_has_3_parts() {
-	let email  = Email::parse("test@example.com".to_owned()).unwrap();
+	let email   = Secret::new("test@example.com".to_owned());
+	let email  = Email::parse(email).unwrap();
 	let result = generate_jwt_auth_token(&email).unwrap();
 	assert_eq!(result.split('.').count(), 3);
 }
 
 #[tokio::test]
 async fn test_valid_token_passes_validation() {
-	let email         = Email::parse("a@b.com".to_owned()).unwrap();
+	let email   = Secret::new("a@b.com".to_owned());
+	let email         = Email::parse(email).unwrap();
 	let token         = generate_jwt_auth_token(&email).unwrap();
 	let banned_tokens =  Arc::new(RwLock::new(HashSetTokenStore::new()));
 	let result        = validate_token(token.as_str(), banned_tokens).await.unwrap();

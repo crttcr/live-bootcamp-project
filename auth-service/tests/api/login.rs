@@ -1,7 +1,9 @@
 use crate::helpers_arrange::{get_2fa_code_tuple, setup_registered_user, TestUser};
 use crate::helpers_assert::{assert_has_auth_cookie, assert_status};
 use crate::helpers_harness::TestApp;
-use auth_service::routes::{LoginRequest, SignupRequest, TwoFactorAuthResponse};
+use auth_service::routes::TwoFactorAuthResponse;
+use serde_json::json;
+use tracing::debug;
 
 
 #[tokio::test]
@@ -9,8 +11,9 @@ async fn should_return_200_if_valid_credentials_and_2fa_disabled() {
     let mut app      = TestApp::new().await;
     let user         = TestUser::new();
     setup_registered_user(&app, &user).await;
-
-    let response = app.post_login(&user.login_payload()).await;
+    let payload      = user.login_payload();
+    debug!("Payload: {:?}", payload);
+    let response     = app.post_login(&payload).await;
     assert_status(&response, 200, None);
     assert_has_auth_cookie(&response);
     app.clean_up().await;
@@ -87,7 +90,7 @@ pub async fn should_return_401_if_user_does_not_exist()
     let mut app  = TestApp::new().await;
     let email    = "foo@bar.com".to_owned();
     let password = "Alpha123**8".to_owned();
-    let body     = LoginRequest{email, password};
+    let body     = serde_json::json!({ "email": email, "password": password });
     let response = app.post_login(&body).await;
     assert_eq!(response.status().as_u16(), 401);
     app.clean_up().await;
@@ -98,7 +101,7 @@ pub async fn should_return_401_if_password_is_wrong()
 {
     let mut app  = TestApp::new().await;
     let user     = TestUser::new();
-    let body     = serde_json::json!({"email":user.email, "password":"wrong_password"});
+    let body     = json!({"email":user.email, "password":"wrong_password"});
     setup_registered_user(&app, &user).await;
     let response = app.post_login(&body).await;
     assert_status(&response, 401, None);
@@ -109,12 +112,11 @@ pub async fn should_return_401_if_password_is_wrong()
 pub async fn should_return_401_if_password_is_incorrect()
 {
     let mut app  = TestApp::new().await;
-    let email    = "foo@bar.com".to_owned();
     let password = "Alpha123**8".to_owned();
     let passjunk = "Delta456**9".to_owned();
-    let signup   = SignupRequest{email : email.clone(), password: passjunk.clone(), requires_2fa: false};
+    let signup   = json!({ "email": "foo@bar.com", "password": password, "requires2FA": false });    
     let _        = app.post_signup(&signup).await;
-    let body     = LoginRequest{email, password};
+    let body     = json!({ "email": "foo@bar.com", "password": passjunk});
     let response = app.post_login(&body).await;
     assert_eq!(response.status().as_u16(), 401);
     app.clean_up().await;

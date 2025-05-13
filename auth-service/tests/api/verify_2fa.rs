@@ -1,8 +1,8 @@
-use serde_json::json;
-use auth_service::routes::Verify2FARequest;
 use crate::helpers_arrange::*;
 use crate::helpers_assert::*;
 use crate::helpers_harness::TestApp;
+use auth_service::routes::Verify2FARequest;
+use serde_json::json;
 
 
 #[tokio::test]

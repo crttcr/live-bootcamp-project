@@ -1,10 +1,11 @@
-use serde_json::json;
-use crate::helpers_harness::TestApp;
-use auth_service::domain::Email;
-use auth_service::utils::auth::generate_jwt_auth_token;
 use crate::helpers_arrange::setup_logged_in_user;
 use crate::helpers_assert::assert_status;
-use crate::helpers_harness::{get_random_email};
+use crate::helpers_harness::TestApp;
+use crate::helpers_harness::get_random_email;
+use auth_service::domain::Email;
+use auth_service::utils::auth::generate_jwt_auth_token;
+use secrecy::Secret;
+use serde_json::json;
 
 #[tokio::test]
 async fn should_return_200_valid_token() {
@@ -57,17 +58,18 @@ async fn should_return_401_if_token_is_banned() {
     // Assert
     assert_status(&response, 401, None);
     {
+        let secret        = Secret::new(token.clone());
         let banned_tokens = app.banned_tokens.read().await;
-        let token         = token.as_str();
-        assert!(banned_tokens.contains_token(&token).await);
+        assert!(banned_tokens.contains_token(&secret).await);
     }
     app.clean_up().await;
 }
 
 #[tokio::test]
 async fn should_return_401_if_banned_token_crt() {
-    let mut app      = TestApp::new().await;
+    let mut app  = TestApp::new().await;
     let email    = get_random_email();
+    let email    = Secret::new(email);
     let email    = Email::parse(email).unwrap();
     let token    = generate_jwt_auth_token(&email).unwrap();
     println!("token: {}", token);
@@ -79,7 +81,8 @@ async fn should_return_401_if_banned_token_crt() {
     //
     {
         let mut tokens = app.banned_tokens.write().await;
-        tokens.add_token(token.clone()).await.unwrap();
+        let secret     = Secret::new(token.clone());
+        tokens.add_token(&secret).await.unwrap();
         println!("token added");
     }
 

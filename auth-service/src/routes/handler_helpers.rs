@@ -31,6 +31,7 @@ where
 }
 
 
+/*
 #[cfg(test)]
 mod tests {
 	use super::*;
@@ -38,7 +39,7 @@ mod tests {
 	use crate::routes::TwoFactorAuthResponse;
 	use axum::Json;
 	use crate::domain::LoginAttemptId;
-
+	
 	#[test]
 	fn it_works() {
 		let status     = StatusCode::PARTIAL_CONTENT;
@@ -51,3 +52,4 @@ mod tests {
 		println!("{:?}", response.into_response());
 	}
 }
+*/

@@ -6,6 +6,7 @@ use auth_service::services::mock_email_client::MockEmailClient;
 use auth_service::utils::constants::{test, DATABASE_URL, DEFAULT_REDIS_HOSTNAME};
 use auth_service::{create_redis_client, Application};
 use reqwest::cookie::Jar;
+use secrecy::ExposeSecret;
 use serde::Serialize;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use sqlx::{Connection, Executor, PgConnection, PgPool};
@@ -157,15 +158,15 @@ pub fn get_random_email() -> String { format!("{}@example.com", Uuid::new_v4()) 
 
 async fn configure_postgresql() -> (PgPool, String) {
 	let e_create  = "Failed to create Postgres connection pool!";
-	let pg_cx_url = DATABASE_URL.to_owned();
 	let db_name   = Uuid::new_v4().to_string();
 
-	// Create new database for each test case with a unique name.
-	configure_database(&pg_cx_url, &db_name).await;
-
-	let url = format!("{}/{}", pg_cx_url, db_name);
-	let url = url.as_str();
-	let pool = PgPoolOptions::new()
+	// Create a new database for each test case with a unique name.
+	//
+	let pg_cx_url = DATABASE_URL.expose_secret().as_str();
+	configure_database(pg_cx_url, &db_name).await;
+	let url       = format!("{}/{}", pg_cx_url, db_name);
+	let url       = url.as_str();
+	let pool      = PgPoolOptions::new()
 		.max_connections(3)
 		.connect(url).await
 		.expect(e_create);
@@ -209,8 +210,8 @@ async fn delete_database(db_name: &str) {
 	let e_parse_cx_str  = "Failed to parse the connection string.";
 	let e_connect       = "Failed to connect to Postgres.";
 	let e_kill_cx       = "Failed to kill any active connections.";
-	let pg_cx_url       = DATABASE_URL.to_owned();
-	let cx_options      = PgConnectOptions::from_str(&pg_cx_url).expect(e_parse_cx_str);
+	let pg_cx_url       = DATABASE_URL.expose_secret().as_str();
+	let cx_options      = PgConnectOptions::from_str(pg_cx_url).expect(e_parse_cx_str);
 	let mut cx          = PgConnection::connect_with(&cx_options).await.expect(e_connect);
 	let cmd_drop_db     = format!(r#"DROP DATABASE "{}";"#, db_name);
 	let cmd_kill_active = format!(r#"

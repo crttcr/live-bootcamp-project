@@ -1,7 +1,8 @@
 
-pub mod constants;
 pub mod auth;
+pub mod constants;
 pub mod hash_utils;
+pub mod tracing;
 
 #[cfg(test)]
 mod auth_tests;
