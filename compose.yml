@@ -15,7 +15,7 @@ services:
     restart: "always"                   # auto restart container on crash
     environment:
         JWT_SECRET: ${JWT_SECRET}
-        DATABASE_URL: "postgres://postgres:${POSTGRES_PASSWORD}@db:{$POSTGRES_PORT}"
+        DATABASE_URL: "postgres://postgres:${POSTGRES_PASSWORD}@db:${POSTGRES_PORT}"
         POSTMARK_AUTH_TOKEN: ${POSTMARK_AUTH_TOKEN}
     ports:
       - "3000:3000"                     # expose :3000 so apps outside container can connect to it
