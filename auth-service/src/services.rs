@@ -7,3 +7,4 @@ pub mod postmark_email_client;
 mod mock_email_client_tests;
 #[cfg(test)]
 mod postmark_email_client_tests;
+mod config;
